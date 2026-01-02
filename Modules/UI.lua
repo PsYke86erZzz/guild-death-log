@@ -40,11 +40,13 @@ function UI:CreateChronicle()
     f:SetSize(480, 600)
     f:SetPoint("CENTER")
     f:SetFrameStrata("HIGH")
+    f:SetFrameLevel(100)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnMouseDown", function(self) self:Raise() end)
     f:Hide()
     
     -- Äußerer Schatten für Tiefe
@@ -236,7 +238,7 @@ function UI:CreateChronicle()
         self:ShowStatistics()
     end)
     
-    f.btnAchievements = self:CreateElegantButton(f, "Erfolge", 35, btnY2, function()
+    f.btnAchievements = self:CreateElegantButton(f, "Meilensteine", 35, btnY2, function()
         self:ShowAchievements()
     end)
     
@@ -339,11 +341,6 @@ end
 function UI:ShowBook() 
     if self.mainFrame then 
         self.mainFrame:Show() 
-        -- Track fuer Achievement
-        local Achievements = GDL:GetModule("Achievements")
-        if Achievements and Achievements.OnBookOpened then
-            Achievements:OnBookOpened()
-        end
     end 
 end
 
@@ -483,15 +480,51 @@ function UI:CreateDeathEntry(parent, death, index)
     if death.timestamp and death.timestamp > 0 then
         local dateText = entry:CreateFontString(nil, "OVERLAY")
         dateText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-        dateText:SetPoint("TOPRIGHT", -8, -8)
+        dateText:SetPoint("TOPRIGHT", -28, -8)  -- Platz für X-Button
         dateText:SetText(date("%d.%m.%y", death.timestamp))
         dateText:SetTextColor(0.5, 0.45, 0.4)
         
         local timeText = entry:CreateFontString(nil, "OVERLAY")
         timeText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-        timeText:SetPoint("TOPRIGHT", -8, -20)
+        timeText:SetPoint("TOPRIGHT", -28, -20)  -- Platz für X-Button
         timeText:SetText(date("%H:%M", death.timestamp))
         timeText:SetTextColor(0.45, 0.4, 0.35)
+    end
+    
+    -- ═══ SANFTER X-BUTTON (nur wenn Passwort gesetzt) ═══
+    if GuildDeathLogDB.adminPassword then
+        local deleteBtn = CreateFrame("Button", nil, entry)
+        deleteBtn:SetSize(16, 16)
+        deleteBtn:SetPoint("RIGHT", -6, 0)
+        deleteBtn:SetAlpha(0.3)  -- Sehr sanft/dezent
+        
+        -- X-Symbol als Text (WoW-kompatibel)
+        local xText = deleteBtn:CreateFontString(nil, "OVERLAY")
+        xText:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
+        xText:SetPoint("CENTER", 0, 0)
+        xText:SetText("x")
+        xText:SetTextColor(0.8, 0.3, 0.3)
+        deleteBtn.xText = xText
+        
+        -- Hover-Effekt
+        deleteBtn:SetScript("OnEnter", function(self)
+            self:SetAlpha(1.0)
+            self.xText:SetTextColor(1, 0.4, 0.4)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Eintrag loeschen", 1, 0.4, 0.4)
+            GameTooltip:AddLine("Erfordert Admin-Passwort", 0.7, 0.7, 0.7)
+            GameTooltip:Show()
+        end)
+        deleteBtn:SetScript("OnLeave", function(self)
+            self:SetAlpha(0.3)
+            self.xText:SetTextColor(0.8, 0.3, 0.3)
+            GameTooltip:Hide()
+        end)
+        
+        -- Klick-Handler - zeigt Passwort-Dialog
+        deleteBtn:SetScript("OnClick", function()
+            UI:ShowPasswordDialog(index, death.name)
+        end)
     end
     
     -- Click Handler - Overlay anzeigen
@@ -500,6 +533,106 @@ function UI:CreateDeathEntry(parent, death, index)
     end)
     
     return entry
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- PASSWORT-DIALOG
+-- ══════════════════════════════════════════════════════════════
+
+function UI:ShowPasswordDialog(deathIndex, charName)
+    if not self.pwDialog then
+        self:CreatePasswordDialog()
+    end
+    
+    self.pwDialog.deathIndex = deathIndex
+    self.pwDialog.charName = charName
+    self.pwDialog.titleText:SetText("|cffFF6666" .. charName .. "|r loeschen?")
+    self.pwDialog.editBox:SetText("")
+    self.pwDialog:Show()
+    self.pwDialog.editBox:SetFocus()
+end
+
+function UI:CreatePasswordDialog()
+    local f = CreateFrame("Frame", "GDLPasswordDialog", UIParent, "BackdropTemplate")
+    f:SetSize(280, 130)
+    f:SetPoint("CENTER", 0, 100)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(200)
+    f:EnableMouse(true)
+    f:Hide()
+    
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
+        edgeSize = 20,
+        insets = {left = 4, right = 4, top = 4, bottom = 4}
+    })
+    
+    -- Titel
+    local title = f:CreateFontString(nil, "OVERLAY")
+    title:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+    title:SetPoint("TOP", 0, -15)
+    title:SetTextColor(1, 0.85, 0.5)
+    f.titleText = title
+    
+    -- Info-Text
+    local info = f:CreateFontString(nil, "OVERLAY")
+    info:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    info:SetPoint("TOP", title, "BOTTOM", 0, -5)
+    info:SetText("Admin-Passwort eingeben:")
+    info:SetTextColor(0.7, 0.7, 0.7)
+    
+    -- Eingabefeld
+    local editBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+    editBox:SetSize(200, 20)
+    editBox:SetPoint("TOP", info, "BOTTOM", 0, -10)
+    editBox:SetAutoFocus(false)
+    editBox:SetMaxLetters(50)
+    -- Passwort verstecken (Sternchen)
+    editBox:SetScript("OnTextChanged", function(self)
+        -- Zeige Sternchen statt echtem Text
+    end)
+    f.editBox = editBox
+    
+    -- OK Button
+    local okBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    okBtn:SetSize(80, 22)
+    okBtn:SetPoint("BOTTOMLEFT", 30, 15)
+    okBtn:SetText("OK")
+    okBtn:SetScript("OnClick", function()
+        local input = editBox:GetText()
+        local valid, err = GDL:VerifyPassword(input)
+        
+        if valid then
+            GDL:DeleteDeath(f.deathIndex)
+            f:Hide()
+        else
+            GDL:Print("|cffFF0000Falsches Passwort!|r")
+            editBox:SetText("")
+            editBox:SetFocus()
+        end
+    end)
+    
+    -- Abbrechen Button
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(80, 22)
+    cancelBtn:SetPoint("BOTTOMRIGHT", -30, 15)
+    cancelBtn:SetText("Abbrechen")
+    cancelBtn:SetScript("OnClick", function()
+        f:Hide()
+    end)
+    
+    -- Enter-Taste = OK
+    editBox:SetScript("OnEnterPressed", function()
+        okBtn:Click()
+    end)
+    
+    -- Escape = Abbrechen
+    editBox:SetScript("OnEscapePressed", function()
+        f:Hide()
+    end)
+    
+    self.pwDialog = f
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -715,13 +848,15 @@ end
 function UI:CreateSettings()
     local s = CreateFrame("Frame", "GDLSettings", UIParent, "BackdropTemplate")
     s:SetSize(300, 340)
-    s:SetPoint("CENTER")
+    s:SetPoint("CENTER", 150, 0)
     s:SetFrameStrata("DIALOG")
+    s:SetFrameLevel(110)
     s:SetMovable(true)
     s:EnableMouse(true)
     s:RegisterForDrag("LeftButton")
     s:SetScript("OnDragStart", s.StartMoving)
     s:SetScript("OnDragStop", s.StopMovingOrSizing)
+    s:SetScript("OnMouseDown", function(self) self:Raise() end)
     
     s:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
@@ -878,13 +1013,15 @@ function UI:CreateHallOfFameWindow()
     
     local f = CreateFrame("Frame", "GDLHallOfFame", UIParent, "BackdropTemplate")
     f:SetSize(450, 500)
-    f:SetPoint("CENTER")
+    f:SetPoint("CENTER", -200, 50)
     f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(120)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnMouseDown", function(self) self:Raise() end)
     
     f:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
@@ -926,13 +1063,15 @@ end
 function UI:CreateStatisticsWindow()
     local f = CreateFrame("Frame", "GDLStatistics", UIParent, "BackdropTemplate")
     f:SetSize(420, 480)
-    f:SetPoint("CENTER")
+    f:SetPoint("CENTER", 200, -50)
     f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(130)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnMouseDown", function(self) self:Raise() end)
     
     f:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
@@ -1188,22 +1327,24 @@ end
 -- ══════════════════════════════════════════════════════════════
 function UI:ShowAchievements()
     if not self.achieveFrame then
-        self:CreateAchievementsWindow()
+        self:CreateMilestonesWindow()
     end
     self.achieveFrame:Show()
-    self:UpdateAchievements()
+    self:UpdateMilestones()
 end
 
-function UI:CreateAchievementsWindow()
-    local f = CreateFrame("Frame", "GDLAchievements", UIParent, "BackdropTemplate")
-    f:SetSize(400, 450)
-    f:SetPoint("CENTER")
+function UI:CreateMilestonesWindow()
+    local f = CreateFrame("Frame", "GDLMilestones", UIParent, "BackdropTemplate")
+    f:SetSize(450, 550)
+    f:SetPoint("CENTER", 0, 20)
     f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(140)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnMouseDown", function(self) self:Raise() end)
     
     f:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
@@ -1218,146 +1359,216 @@ function UI:CreateAchievementsWindow()
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\MORPHEUS.TTF", 18, "")
     title:SetPoint("TOP", 0, -15)
-    title:SetText("|cff1a0a00Erfolge / Achievements|r")
+    title:SetText("|cff1a0a00Meilensteine / Milestones|r")
+    
+    -- Charakter-Name Anzeige
+    local charInfo = f:CreateFontString(nil, "OVERLAY")
+    charInfo:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    charInfo:SetPoint("TOP", title, "BOTTOM", 0, -5)
+    charInfo:SetTextColor(0.5, 0.5, 0.5)
+    f.charInfo = charInfo
+    
+    -- Kategorie-Buttons
+    local categories = {
+        {id = "level", name = "Level", icon = "Interface\\Icons\\Spell_Holy_WordFortitude"},
+        {id = "dungeon", name = "Dungeons", icon = "Interface\\Icons\\INV_Misc_Key_04"},
+        {id = "raid", name = "Raids", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01"},
+        {id = "profession", name = "Berufe", icon = "Interface\\Icons\\Trade_BlackSmithing"},
+    }
+    
+    f.categoryButtons = {}
+    f.selectedCategory = "level"
+    
+    local btnX = -150
+    for i, cat in ipairs(categories) do
+        local btn = CreateFrame("Button", nil, f, "BackdropTemplate")
+        btn:SetSize(90, 30)
+        btn:SetPoint("TOP", 0 + btnX + (i-1)*100, -55)
+        
+        btn:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 8,
+            insets = {left = 2, right = 2, top = 2, bottom = 2}
+        })
+        btn:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
+        btn:SetBackdropBorderColor(0.4, 0.35, 0.25, 1)
+        
+        local icon = btn:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(20, 20)
+        icon:SetPoint("LEFT", 5, 0)
+        icon:SetTexture(cat.icon)
+        
+        local text = btn:CreateFontString(nil, "OVERLAY")
+        text:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+        text:SetPoint("LEFT", icon, "RIGHT", 3, 0)
+        text:SetText(cat.name)
+        
+        btn.categoryId = cat.id
+        btn:SetScript("OnClick", function()
+            f.selectedCategory = cat.id
+            self:UpdateMilestones()
+        end)
+        
+        btn:SetScript("OnEnter", function(self)
+            self:SetBackdropColor(0.2, 0.2, 0.15, 0.9)
+        end)
+        btn:SetScript("OnLeave", function(self)
+            if f.selectedCategory == self.categoryId then
+                self:SetBackdropColor(0.2, 0.15, 0.1, 0.9)
+            else
+                self:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
+            end
+        end)
+        
+        f.categoryButtons[cat.id] = btn
+    end
     
     local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 20, -50)
+    scroll:SetPoint("TOPLEFT", 20, -95)
     scroll:SetPoint("BOTTOMRIGHT", -35, 20)
     
     local child = CreateFrame("Frame", nil, scroll)
-    child:SetSize(scroll:GetWidth(), 600)
+    child:SetSize(scroll:GetWidth(), 800)
     scroll:SetScrollChild(child)
     f.contentFrame = child
     
     self.achieveFrame = f
 end
 
-function UI:UpdateAchievements()
-    local Ach = GDL:GetModule("Achievements")
-    if not Ach or not self.achieveFrame then return end
+function UI:UpdateMilestones()
+    local Milestones = GDL:GetModule("Milestones")
+    if not Milestones or not self.achieveFrame then return end
     
-    local content = self.achieveFrame.contentFrame
+    local f = self.achieveFrame
+    local content = f.contentFrame
+    local category = f.selectedCategory or "level"
+    
+    -- Charakter-Info aktualisieren
+    local charKey = Milestones:GetCharacterKey()
+    local charName = UnitName("player")
+    local unlocked, total = Milestones:GetMilestoneProgress(charKey)
+    f.charInfo:SetText(charName .. " - " .. unlocked .. "/" .. total .. " Meilensteine")
+    
+    -- Button-Farben aktualisieren
+    for catId, btn in pairs(f.categoryButtons) do
+        if catId == category then
+            btn:SetBackdropColor(0.2, 0.15, 0.1, 0.9)
+            btn:SetBackdropBorderColor(0.8, 0.7, 0.4, 1)
+        else
+            btn:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
+            btn:SetBackdropBorderColor(0.4, 0.35, 0.25, 1)
+        end
+    end
+    
+    -- Content leeren
     for _, c in ipairs({content:GetChildren()}) do c:Hide() c:SetParent(nil) end
     for _, r in ipairs({content:GetRegions()}) do r:Hide() end
     
-    local allAch = Ach:GetAllAchievements()
-    local unlocked = Ach:GetUnlocked()
+    local milestones = Milestones:GetMilestonesByCategory(category)
+    local charMilestones = Milestones:GetCharacterMilestones(charKey)
     local y = 0
     
-    -- Sortiere nach Schwierigkeit
-    local sorted = {}
-    for _, ach in ipairs(allAch) do
-        table.insert(sorted, ach)
-    end
-    table.sort(sorted, function(a, b) 
-        if a.difficulty ~= b.difficulty then
-            return (a.difficulty or 1) < (b.difficulty or 1)
-        end
-        return a.threshold < b.threshold
-    end)
-    
-    -- Zaehle freigeschaltet/gesamt
-    local unlockedCount, totalCount = 0, 0
-    for _, ach in ipairs(sorted) do
-        if not ach.secret or unlocked[ach.id] then
-            totalCount = totalCount + 1
-            if unlocked[ach.id] then unlockedCount = unlockedCount + 1 end
-        end
-    end
-    
-    -- Header
+    -- Kategorie-Header
+    local catUnlocked, catTotal = Milestones:GetCategoryProgress(category, charKey)
     local header = content:CreateFontString(nil, "OVERLAY")
-    header:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    header:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     header:SetPoint("TOPLEFT", 0, y)
-    header:SetText(string.format("|cff3a2a20Freigeschaltet: %d/%d|r", unlockedCount, totalCount))
+    
+    local categoryNames = {
+        level = "Level-Meilensteine",
+        dungeon = "Dungeon-Bosse",
+        raid = "Raid-Bosse",
+        profession = "Berufe"
+    }
+    header:SetText("|cff3a2a20" .. (categoryNames[category] or category) .. " - " .. catUnlocked .. "/" .. catTotal .. "|r")
     y = y - 25
     
-    for _, ach in ipairs(sorted) do
-        local isUnlocked = unlocked[ach.id] ~= nil
-        local isSecret = ach.secret or false
+    -- Sortiere nach Threshold
+    table.sort(milestones, function(a, b)
+        return (a.threshold or 0) < (b.threshold or 0)
+    end)
+    
+    for _, m in ipairs(milestones) do
+        local isUnlocked = charMilestones[m.id] ~= nil
+        local unlockData = charMilestones[m.id]
         
-        -- Geheime Achievements nur zeigen wenn freigeschaltet
-        if not isSecret or isUnlocked then
-            local row = CreateFrame("Frame", nil, content, "BackdropTemplate")
-            row:SetSize(340, 55)
-            row:SetPoint("TOPLEFT", 0, y)
-            
-            row:SetBackdrop({
-                bgFile = "Interface\\Buttons\\WHITE8X8",
-                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                edgeSize = 10,
-                insets = {left = 2, right = 2, top = 2, bottom = 2}
-            })
-            
-            -- Farbe basierend auf Schwierigkeit und Status
-            local diffColor = Ach:GetDifficultyColor(ach.difficulty or 1)
-            if isUnlocked then
-                row:SetBackdropColor(0.15, 0.25, 0.1, 0.7)
-                row:SetBackdropBorderColor(diffColor[1], diffColor[2], diffColor[3], 0.8)
-            else
-                row:SetBackdropColor(0.08, 0.08, 0.08, 0.5)
-                row:SetBackdropBorderColor(0.2, 0.2, 0.2, 0.5)
-            end
-            
-            local icon = row:CreateTexture(nil, "ARTWORK")
-            icon:SetSize(38, 38)
-            icon:SetPoint("LEFT", 8, 0)
-            icon:SetTexture(ach.icon)
-            if not isUnlocked then icon:SetDesaturated(true) icon:SetAlpha(0.5) end
-            
-            -- Schwierigkeits-Indikator
-            local diffDot = row:CreateTexture(nil, "OVERLAY")
-            diffDot:SetSize(8, 8)
-            diffDot:SetPoint("TOPLEFT", 4, -4)
-            diffDot:SetColorTexture(diffColor[1], diffColor[2], diffColor[3], 1)
-            
-            local name = row:CreateFontString(nil, "OVERLAY")
-            name:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
-            name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, -3)
-            name:SetWidth(240)
-            if isUnlocked then
-                name:SetText("|cff33AA33+|r " .. ach.name)
-            else
-                name:SetText("|cff888888" .. ach.name .. "|r")
-            end
-            
-            local desc = row:CreateFontString(nil, "OVERLAY")
-            desc:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-            desc:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -2)
-            desc:SetWidth(240)
-            desc:SetText("|cff666666" .. ach.desc .. "|r")
-            
-            -- Progress oder Datum
-            local current, needed = Ach:GetProgress(ach.id)
-            if not isUnlocked and needed > 0 then
-                local progText = row:CreateFontString(nil, "OVERLAY")
-                progText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-                progText:SetPoint("TOPRIGHT", -10, -8)
-                local pct = math.floor((current / needed) * 100)
-                progText:SetText(string.format("|cffAAAAAA%d/%d|r", current, needed))
-                
-                -- Progress Bar
-                local barBg = row:CreateTexture(nil, "ARTWORK")
-                barBg:SetSize(50, 6)
-                barBg:SetPoint("TOPRIGHT", -10, -22)
-                barBg:SetColorTexture(0.2, 0.2, 0.2, 0.8)
-                
-                local bar = row:CreateTexture(nil, "OVERLAY")
-                bar:SetSize(math.max(1, 50 * (current / needed)), 6)
-                bar:SetPoint("TOPLEFT", barBg, "TOPLEFT", 0, 0)
-                bar:SetColorTexture(diffColor[1], diffColor[2], diffColor[3], 0.8)
-            elseif isUnlocked then
-                local dateText = row:CreateFontString(nil, "OVERLAY")
-                dateText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-                dateText:SetPoint("TOPRIGHT", -10, -8)
-                dateText:SetText("|cff33AA33" .. date("%d.%m.%y", unlocked[ach.id].date or 0) .. "|r")
-            end
-            
-            y = y - 60
+        local row = CreateFrame("Frame", nil, content, "BackdropTemplate")
+        row:SetSize(380, 55)
+        row:SetPoint("TOPLEFT", 0, y)
+        
+        row:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 2, right = 2, top = 2, bottom = 2}
+        })
+        
+        -- Farbe basierend auf Kategorie und Status
+        local catColors = {
+            level = {0.2, 0.6, 0.2},
+            dungeon = {0.4, 0.4, 0.8},
+            raid = {0.8, 0.4, 0.2},
+            profession = {0.6, 0.5, 0.2}
+        }
+        local color = catColors[category] or {0.5, 0.5, 0.5}
+        
+        if isUnlocked then
+            row:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.8)
+            row:SetBackdropBorderColor(color[1], color[2], color[3], 0.9)
+        else
+            row:SetBackdropColor(0.08, 0.08, 0.08, 0.5)
+            row:SetBackdropBorderColor(0.2, 0.2, 0.2, 0.5)
         end
+        
+        -- Icon
+        local icon = row:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(42, 42)
+        icon:SetPoint("LEFT", 6, 0)
+        icon:SetTexture(m.icon)
+        if not isUnlocked then 
+            icon:SetDesaturated(true) 
+            icon:SetAlpha(0.4) 
+        end
+        
+        -- Name
+        local name = row:CreateFontString(nil, "OVERLAY")
+        name:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+        name:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -5)
+        name:SetWidth(280)
+        if isUnlocked then
+            name:SetText("|cff00FF00[+]|r " .. m.name)
+        else
+            name:SetText("|cff666666" .. m.name .. "|r")
+        end
+        
+        -- Beschreibung
+        local desc = row:CreateFontString(nil, "OVERLAY")
+        desc:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+        desc:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
+        desc:SetWidth(280)
+        desc:SetText("|cff888888" .. m.desc .. "|r")
+        
+        -- Datum wenn freigeschaltet
+        if isUnlocked and unlockData then
+            local dateText = row:CreateFontString(nil, "OVERLAY")
+            dateText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+            dateText:SetPoint("BOTTOMRIGHT", -10, 8)
+            local dateStr = unlockData.timestamp and date("%d.%m.%Y", unlockData.timestamp) or "?"
+            dateText:SetText("|cff00AA00" .. dateStr .. "|r")
+            
+            if unlockData.level then
+                local lvlText = row:CreateFontString(nil, "OVERLAY")
+                lvlText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+                lvlText:SetPoint("TOPRIGHT", -10, -8)
+                lvlText:SetText("|cffAAAA00Lvl " .. unlockData.level .. "|r")
+            end
+        end
+        
+        y = y - 60
     end
     
-    content:SetHeight(math.abs(y) + 20)
+    content:SetHeight(math.abs(y) + 30)
 end
 
 GDL:RegisterModule("UI", UI)

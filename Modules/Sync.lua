@@ -203,10 +203,42 @@ function Sync:ClassNameToId(className)
 end
 
 function Sync:GetDeathKey(name, timestamp)
+    -- Alte Methode für Kompatibilität - 1 Minute Fenster
     return (name or ""):lower() .. "-" .. math.floor((timestamp or 0) / 60)
 end
 
+-- NEUE Methode: Prüft ob gleicher Name innerhalb von 5 Minuten
+function Sync:IsDuplicateByName(name, timestamp, windowSeconds)
+    windowSeconds = windowSeconds or 300 -- Standard: 5 Minuten
+    local checkName = (name or ""):lower()
+    local checkTime = timestamp or time()
+    
+    local guildData = GDL:GetGuildData()
+    if guildData then
+        for _, d in ipairs(guildData.deaths or {}) do
+            local deathName = (d.name or ""):lower()
+            local deathTime = d.timestamp or 0
+            
+            -- Gleicher Name UND innerhalb des Zeitfensters?
+            if deathName == checkName then
+                local timeDiff = math.abs(checkTime - deathTime)
+                if timeDiff < windowSeconds then
+                    GDL:Debug("Duplikat erkannt: " .. name .. " (Zeitdiff: " .. timeDiff .. "s)")
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 function Sync:IsDuplicate(death)
+    -- Erst die neue 5-Minuten-Prüfung
+    if self:IsDuplicateByName(death.name, death.timestamp, 300) then
+        return true
+    end
+    
+    -- Dann die alte Key-basierte Prüfung
     local key = self:GetDeathKey(death.name, death.timestamp)
     if recentDeaths[key] then return true end
     

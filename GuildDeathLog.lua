@@ -13,7 +13,7 @@ addon.GDL = GDL
 _G["GuildDeathLog"] = GDL
 _G["GuildDeathLogDB"] = _G["GuildDeathLogDB"] or {}
 
-GDL.version = "4.0.3"
+GDL.version = "4.2.0"
 GDL.addonName = addonName
 GDL.modules = {}
 GDL.currentGuildName = nil
@@ -68,6 +68,45 @@ function GDL:GetClassName(classId)
     return "Unknown"
 end
 
+-- Prüft ob Spieler Gilden-Offizier ist (Rang 0-2)
+function GDL:IsGuildOfficer()
+    if not IsInGuild() then return false end
+    local _, _, rankIndex = GetGuildInfo("player")
+    return rankIndex and rankIndex <= 2  -- 0 = GM, 1 = Erster Offizier, 2 = Offizier
+end
+
+-- Passwort verifizieren
+function GDL:VerifyPassword(inputPassword)
+    if not GuildDeathLogDB.adminPassword then
+        return false, "Kein Passwort gesetzt"
+    end
+    return inputPassword == GuildDeathLogDB.adminPassword, nil
+end
+
+-- Tod aus der Liste löschen
+function GDL:DeleteDeath(deathIndex)
+    local guildData = self:GetGuildData()
+    if not guildData or not guildData.deaths then return false end
+    
+    if deathIndex < 1 or deathIndex > #guildData.deaths then
+        return false
+    end
+    
+    local death = guildData.deaths[deathIndex]
+    local deathName = death and death.name or "Unbekannt"
+    
+    table.remove(guildData.deaths, deathIndex)
+    self:Print("|cffFF6666" .. deathName .. "|r wurde aus der Liste entfernt.")
+    
+    -- UI aktualisieren
+    local UI = self:GetModule("UI")
+    if UI and UI.mainFrame and UI.mainFrame:IsShown() then
+        UI:UpdateChronicle()
+    end
+    
+    return true
+end
+
 function GDL:FireModuleEvent(event, ...)
     for name, module in pairs(self.modules) do
         if module and module.OnEvent then
@@ -94,6 +133,7 @@ end
 function GDL:InitDB()
     GuildDeathLogDB.guilds = GuildDeathLogDB.guilds or {}
     GuildDeathLogDB.settings = GuildDeathLogDB.settings or {}
+    GuildDeathLogDB.adminPassword = GuildDeathLogDB.adminPassword or nil -- Gildenleiter-Passwort
     
     -- Version Check fuer Migration
     local currentVersion = "4.0.2"
@@ -213,23 +253,75 @@ SlashCmdList["GDL"] = function(msg)
         if UI then UI:ShowHallOfFame() end
     elseif msg == "stats" or msg == "statistics" or msg == "statistiken" then
         if UI then UI:ShowStatistics() end
-    elseif msg == "ach" or msg == "achievements" or msg == "erfolge" then
+    elseif msg == "ach" or msg == "achievements" or msg == "erfolge" or msg == "milestones" or msg == "meilensteine" then
         if UI then UI:ShowAchievements() end
     elseif msg == "export" then
         if Export then Export:ShowExportWindow() end
     elseif msg == "help" then
-        GDL:Print("═══ Befehle / Commands v4.0 ═══")
+        GDL:Print("═══ Befehle / Commands v4.1 ═══")
         GDL:Print("/gdl - Buch öffnen / Open book")
         GDL:Print("/gdl hof - Ruhmeshalle / Hall of Fame")
         GDL:Print("/gdl stats - Statistiken / Statistics")
-        GDL:Print("/gdl ach - Erfolge / Achievements")
+        GDL:Print("/gdl ach - Meilensteine / Milestones")
         GDL:Print("/gdl export - Export-Fenster")
         GDL:Print("/gdl sync - Synchronisieren")
         GDL:Print("/gdl test - |cffFFFF00Sync-Test senden|r")
         GDL:Print("/gdl debug - Debug-Fenster")
         GDL:Print("/gdl settings - Einstellungen")
+        GDL:Print("--- Admin (Gildenleiter) ---")
+        GDL:Print("/gdl setpw <pw> - Admin-Passwort setzen")
+        GDL:Print("/gdl clearpw - Passwort entfernen")
+        GDL:Print("/gdl haspw - Passwort-Status pruefen")
     elseif msg == "test" then
         if Sync then Sync:SendTestDeath() end
+    elseif msg == "mtest" or msg == "milestonetest" then
+        local Milestones = GDL:GetModule("Milestones")
+        if Milestones then 
+            Milestones:TestLevelMilestones() 
+        else
+            GDL:Print("|cffFF0000Milestones-Modul nicht geladen!|r")
+        end
+    elseif msg == "mforce" or msg == "milestoneforce" then
+        local Milestones = GDL:GetModule("Milestones")
+        if Milestones then 
+            Milestones:ForceUnlockCurrentLevel() 
+        else
+            GDL:Print("|cffFF0000Milestones-Modul nicht geladen!|r")
+        end
+    elseif msg == "mcheck" or msg == "milestonecheck" then
+        local Milestones = GDL:GetModule("Milestones")
+        if Milestones then 
+            Milestones:CheckCurrentLevel() 
+        else
+            GDL:Print("|cffFF0000Milestones-Modul nicht geladen!|r")
+        end
+    elseif msg:match("^setpw%s+") then
+        local password = msg:match("^setpw%s+(.+)$")
+        if password and password ~= "" then
+            -- Prüfen ob Gildenleiter
+            if IsGuildLeader() or GDL:IsGuildOfficer() then
+                GuildDeathLogDB.adminPassword = password
+                GDL:Print("|cff00FF00Admin-Passwort gesetzt!|r")
+                GDL:Print("|cffAAAAFFNur du und Offiziere können es ändern.|r")
+            else
+                GDL:Print("|cffFF0000Fehler:|r Nur der Gildenleiter oder Offiziere können das Passwort setzen!")
+            end
+        else
+            GDL:Print("Verwendung: /gdl setpw <passwort>")
+        end
+    elseif msg == "clearpw" then
+        if IsGuildLeader() or GDL:IsGuildOfficer() then
+            GuildDeathLogDB.adminPassword = nil
+            GDL:Print("|cffFFFF00Admin-Passwort entfernt.|r")
+        else
+            GDL:Print("|cffFF0000Fehler:|r Nur Gildenleiter oder Offiziere!")
+        end
+    elseif msg == "haspw" then
+        if GuildDeathLogDB.adminPassword then
+            GDL:Print("|cff00FF00Passwort ist gesetzt.|r Lösch-Buttons sind aktiv.")
+        else
+            GDL:Print("|cffFFFF00Kein Passwort gesetzt.|r Verwende /gdl setpw <passwort>")
+        end
     else
         GDL:Print("Unbekannter Befehl. /gdl help für Hilfe")
     end
