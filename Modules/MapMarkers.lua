@@ -161,12 +161,13 @@ function MapMarkers:GetOrCreatePin(parent, death)
 end
 
 function MapMarkers:CreatePin(parent)
-    local pin = CreateFrame("Frame", nil, parent)
+    -- WICHTIG: Button statt Frame für OnClick Support!
+    local pin = CreateFrame("Button", nil, parent)
     pin:SetSize(24, 24)
     pin:SetFrameStrata("HIGH")
     pin:SetFrameLevel(100)
     
-    -- Hintergrund-Glow
+    -- Hintergrund-Glow (rötlich für Tod)
     local glow = pin:CreateTexture(nil, "BACKGROUND")
     glow:SetTexture("Interface\\Cooldown\\star4")
     glow:SetBlendMode("ADD")
@@ -176,11 +177,19 @@ function MapMarkers:CreatePin(parent)
     glow:SetVertexColor(0.8, 0.2, 0.2, 1)
     pin.glow = glow
     
-    -- Totenkopf Icon
+    -- Grabstein/Totenkopf Icon
+    -- Verfügbare Classic Icons:
+    -- "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" = Totenkopf
+    -- "Interface\\MINIMAP\\POIIcons" = verschiedene POI Marker  
+    -- "Interface\\WorldMap\\Skull_64Grey" = grauer Schädel
+    -- "Interface\\Buttons\\UI-GroupLoot-Coin-Up" = Münze
     local icon = pin:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER")
+    -- Totenkopf-Icon (gut sichtbar auf der Karte)
     icon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")
+    -- Leicht gräulich für "tot" Look
+    icon:SetVertexColor(0.9, 0.85, 0.8)
     pin.icon = icon
     
     -- Interaktiv
@@ -242,9 +251,11 @@ function MapMarkers:CreatePin(parent)
         end
     end)
     
-    pin:SetScript("OnClick", function(self)
+    -- Button muss für Klicks registriert werden
+    pin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    pin:SetScript("OnClick", function(self, button)
         local d = self.deathData
-        if d then
+        if d and button == "LeftButton" then
             local UI = GDL:GetModule("UI")
             if UI then UI:ShowOverlay(d, d.syncedFrom ~= nil) end
         end

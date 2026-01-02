@@ -13,7 +13,7 @@ addon.GDL = GDL
 _G["GuildDeathLog"] = GDL
 _G["GuildDeathLogDB"] = _G["GuildDeathLogDB"] or {}
 
-GDL.version = "4.2.0"
+GDL.version = "4.2.1"
 GDL.addonName = addonName
 GDL.modules = {}
 GDL.currentGuildName = nil
