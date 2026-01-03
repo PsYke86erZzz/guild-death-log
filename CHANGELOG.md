@@ -1,236 +1,363 @@
 # Das Buch der Gefallenen - Changelog
 
-## Version 4.2.0
-**Duplikat-Schutz & Loesch-Funktion mit Passwort**
+## Version 4.7.0
+**NEUE MODULE: Gedenkhalle & Gilden-Statistiken!**
 
-### Neue Features
+### 🪦 NEU: Memorial-Modul (Gedenkhalle)
+Ehre die Gefallenen mit zufaelligen Nachrufen!
 
-**5-Minuten Duplikat-Schutz**
-- Wenn ein Charakter mit dem gleichen Namen innerhalb von 5 Minuten stirbt, wird der zweite Tod NICHT geloggt
-- Verhindert doppelte Eintraege durch Sync-Probleme oder Mehrfach-Meldungen
+**Features:**
+- Liste aller verstorbenen Gildenmitglieder
+- **28 zufaellige Nachrufe** (ehrenvoll, humorvoll, episch)
+- Klassenicon, Level, Zone, Killer, Datum
+- **Verstorbene werden automatisch aus Berufe-Liste entfernt**
 
-**Loesch-Funktion mit Passwort-Schutz**
-- Sanfter X-Button (dezent, nur 30% sichtbar) bei jedem Todeseintrag
-- X-Button erscheint nur wenn ein Admin-Passwort gesetzt ist
-- Bei Klick auf X wird ein Passwort-Dialog angezeigt
-- Nur mit korrektem Passwort kann ein Eintrag geloescht werden
+**Befehle:** `/gdl memorial` oder `/gdl rip`
 
-### Neue Admin-Befehle (nur Gildenleiter/Offiziere)
-- `/gdl setpw <passwort>` - Setzt das Admin-Passwort
-- `/gdl clearpw` - Entfernt das Passwort (X-Buttons verschwinden)
-- `/gdl haspw` - Zeigt ob ein Passwort gesetzt ist
-
-### Technische Details
-- `IsDuplicateByName()` - Neue Funktion fuer 5-Min-Namens-Check
-- `VerifyPassword()` - Passwort-Verifizierung
-- `DeleteDeath()` - Loescht einen Eintrag aus der Liste
-- `ShowPasswordDialog()` - Passwort-Eingabe-Dialog
-- Rang-Pruefung: Nur GM (Rang 0) und Offiziere (Rang 1-2) koennen Passwort setzen
+**Nachruf-Beispiele:**
+- "Ruhe in Frieden, tapferer Held."
+- "'Ich tank das' - Letzte Worte."
+- "Selbst der Tod konnte deinen Ruhm nicht mindern."
 
 ---
 
-## Version 4.1.2
-**Debug-Tools für Meilensteine**
+### 📊 NEU: GuildStats-Modul (Gilden-Statistiken)
+Ueberblick ueber die gesamte Gilde!
 
-### Neue Befehle
-- `/gdl mtest` - Zeigt detaillierten Meilenstein-Status
-- `/gdl mcheck` - Prüft und holt Level-Meilensteine nach
-- `/gdl mforce` - Erzwingt Freischaltung aller Level-Meilensteine
+**Durchschnittslevel:**
+- Gesamt (alle Mitglieder)
+- Online vs Offline getrennt
+- Anzahl Mitglieder
 
-### Verbesserungen
-- **Initialize zeigt jetzt Chat-Nachrichten** zur Bestätigung
-- **CheckCurrentLevel** zeigt Nachrichten im Chat
-- Mehr Debug-Output für Troubleshooting
-- Level-Meilensteine werden bei Initialize automatisch geprüft
+**Tode pro Charakter:**
+- Ranking mit Gold/Silber/Bronze fuer Top 3
+- Anzahl Tode pro Spieler
+- **Hover-Tooltip** mit Details (Level, Zone, Datum)
+- Dunkle Schriftfarben passend zum Pergament-Design
 
-### Debug-Ausgaben
-Bei `/gdl mtest` siehst du:
-- Charaktername und Key
-- Aktuelles Level
-- Alle freigeschalteten Meilensteine
-- Status aller Level-Meilensteine (✅/❌/⚠️)
+**Befehle:** `/gdl gstats` oder `/gdl gildenstat`
 
 ---
 
-## Version 4.1.1
-**Level-Tracking Fix**
+### 🎨 UI-Verbesserungen
 
-### Bug-Fix
-- **Level-Tracking komplett überarbeitet** nach WoW_Hardcore Vorbild
-- Event-Handler-System wie im WoW_Hardcore Addon implementiert
-- `PLAYER_LEVEL_UP` Event wird jetzt korrekt verarbeitet
-- `PLAYER_LOGIN` und `PLAYER_ENTERING_WORLD` Events für Level-Check beim Login
-- Level wird jetzt aus dem Event-Parameter gelesen (nicht mehr aus `UnitLevel("player")` im Event-Handler)
-- Debug-Ausgaben für besseres Troubleshooting
+**Schriftfarben korrigiert:**
+- Alle Fenster nutzen jetzt einheitlich dunkle Braun-Toene
+- Passend zum Pergament-Hintergrund der Ruhmeshalle
+- Bessere Lesbarkeit auf hellem Hintergrund
 
-### Technische Änderungen
-- Neues Event-Handler-Pattern: `self[event](self, ...)` 
-- Separate Handler-Funktionen für jeden Event-Typ
-- `CheckCurrentLevel()` Funktion für Login-Level-Check
-- Mehr Debug-Ausgaben bei Level-Up und Login
+**Fenster-Positionen (Cascade-Layout):**
+- **Keine Ueberlappung** mehr wenn mehrere Fenster offen sind
+- Alle Fenster sind verschiebbar (Drag & Drop)
+- Gestaffelte Anordnung links/rechts vom Hauptfenster
 
----
-
-## Version 4.1.0
-**Meilenstein-System - Komplette Überarbeitung**
-
-### BREAKING CHANGE: Achievements → Milestones
-Das alte Achievement-System mit 46 generischen Erfolgen wurde komplett ersetzt durch ein neues **Meilenstein-System** mit echten Gameplay-Meilensteinen!
-
-### Neues Meilenstein-System
-- **100% Charakter-basiert** - Jeder Charakter hat seinen eigenen Fortschritt
-- **Gilden-Synchronisation** - Meilensteine werden zwischen Gildenmitgliedern geteilt
-- **Kein "NORMEN"-Bug mehr** - Korrekter Charaktername bei allen Events
-
-### Meilenstein-Kategorien
-
-**Level-Meilensteine (6)**
-- Level 10, 20, 30, 40, 50, 60
-
-**Dungeon-Bosse (24)**
-- RFC, Deadmines, WC, SFK, BFD, Stocks
-- Gnomeregan, alle SM-Flügel, RFK, RFD, Uldaman, ZF, Maraudon
-- Sunken Temple, BRD, alle DM-Flügel, LBRS, UBRS, Scholomance, Stratholme
-
-**Raid-Bosse (7)**
-- Onyxia, Ragnaros (MC), Nefarian (BWL)
-- Hakkar (ZG), Ossirian (AQ20), C'Thun (AQ40), Kel'Thuzad (Naxx)
-
-**Berufe-Meilensteine (6)**
-- Hauptberuf 150/225/300
-- Angeln, Kochen, Erste Hilfe auf 300
-
-### Neue UI
-- **Kategorien-Navigation** mit Icons
-- Übersichtliche Darstellung pro Kategorie
-- Fortschrittsanzeige pro Charakter
-- Datum & Level bei Freischaltung
-
-### Entfernt
-- Alle 46 alten Achievements
-- Spielzeit-Tracking
-- Gold-Tracking
-- Quest-Tracking
-- Feinde-getötet-Tracking
-- Addon-Nutzungs-Tracking
-- Buch-öffnen-Tracking
-- Tode-beobachtet-Tracking
-
-### Technisch
-- Neues Modul: `Milestones.lua` (ersetzt `Achievements.lua`)
-- Eigener Addon-Prefix `GDLMile` für Sync
-- Boss-ID-Tracking via Combat Log
-- Profession-Skill-Tracking via Classic API
+**Layout:**
+```
+        [Memorial]              [Titles]
+              ↘                   ↙
+    [Professions]  [HAUPT]  [HallOfFame]
+                       ↘
+                   [Statistics]
+                        ↘
+                    [Milestones]
+                         ↘
+                     [GuildStats]
+```
 
 ---
 
-## Version 4.0.3
-**Minimap-Button & Debug-Verbesserungen**
-
-### Neue Features
-- **Minimap-Button** ☠️
-  - Totenkopf-Icon, frei beweglich auf dem Bildschirm
-  - Linksklick: Buch öffnen/schließen
-  - Shift+Linksklick: Sync anfordern
-  - Rechtsklick: Einstellungen öffnen
-  - Position wird gespeichert
-
-### Verbesserungen
-- **Debug-Fenster komplett überarbeitet**
-  - Online-Liste jetzt in eigener scrollbarer Box
-  - 3 Boxen nebeneinander (Sync Status | Online | Deathlog)
-  - Läuft nicht mehr aus dem Fenster raus
-  - Fenster breiter (560px)
+### 🗺️ Gilden-Karte verbessert
+- **Neues Pin-Design**: Kleiner Punkt + pulsierender Glow-Ring
+- **Ultra-Echtzeit**: Updates alle 0.75 Sekunden (vorher 1.5s)
+- **33 FPS**: Fluessigere Pin-Bewegung
+- **Klassenfarben** auf Punkt und Glow
 
 ---
 
-## Version 4.0.2
-**Popup-Verbesserungen & Sync-Fixes**
-
-### Popup-Overlay
-- **Skalierbar** (50% - 200%) via Slider in Einstellungen
-- **Frei verschiebbar** (Drag & Drop)
-- **Position wird gespeichert**
-- Rechtsklick schließt das Popup
-- **Neues Design:**
-  - Großer Totenkopf ☠️ als Hauptsymbol
-  - Kleines Klassen-Icon am Totenkopf
-  - Rote Linie oben als Todesmarkierung
-  - Größere, besser lesbare Schrift (Name: 20pt)
-  - Kompakteres Layout (340x110)
-- Reset-Button in Einstellungen (setzt Position & Größe zurück)
-
-### Sync-Fixes
-- v1.2 Kompatibilität verbessert (Format wird zuerst gesendet)
-- PLAYER_ENTERING_WORLD Event-Handling gefixt
-- Mehr Debug-Ausgaben für Sync-Probleme
-- `/gdl test` Befehl zum Testen der Sync-Funktion
+### 🔇 Sync-Spam behoben
+- Nur **LIVE Tode** (< 30 Sekunden) zeigen Popup/Sound
+- Historische Tode werden **still** importiert
+- Weniger automatische Syncs
 
 ---
 
-## Version 4.0.1
-**Statistik-Fenster Redesign & Settings-Migration**
-
-### Statistik-Fenster
-- **4 farbige Info-Boxen** mit Icons:
-  - 📊 Zusammenfassung (Gold)
-  - 🗺️ Gefährlichste Zonen (Pink)
-  - ⚔️ Tödlichste Monster (Lila)
-  - ⚔️ Klassen-Verteilung (Blau)
-- Helle, gut lesbare Schrift
-- Zweisprachige Labels (DE/EN)
-- Side-by-Side Layout für Zonen/Monster
-- Kompakteres Fenster (420x480)
-
-### Bug-Fixes
-- **Kritischer Fix:** Settings-Migration für bestehende User
-- Alle Einstellungen werden bei Update automatisch aktiviert
-- Verhindert dass Sync nach Update aus ist
+### 🎯 Neue Buttons im Hauptfenster
+Reihe 3: `[Titel] [Gedenkhalle] [Gilden-Stats]`
 
 ---
 
-## Version 4.0.0
-**Großes Feature-Update**
+## Version 4.6.0
+**GROSSES UPDATE: Echtzeit Gilden-Karte, Kill-Meilensteine & Titel-System!**
 
-### Neue Module (8 Stück)
-- **LastWords** - Speichert letzte Chat-Nachrichten automatisch
-- **KillerTracker** - Erfasst wer/was den Spieler getötet hat
-- **Statistics** - Erweiterte Statistiken (Zonen, Level, Klassen, Killer)
-- **Achievements** - 46 Überlebens-Erfolge mit Popup-System
-- **HallOfFame** - Ruhmeshalle für Level 60 Überlebende
-- **Condolences** - 15+ automatische Beileidsnachrichten
-- **Export** - Text/Discord Export mit Custom-Channel
-- **Debug** - Debug-Fenster mit Aktivitäts-Log
+### 🚨 KRITISCHER BUG-FIX
+**Mehrere Module wurden nie initialisiert!** Das betrifft:
+- `GuildTracker` - Spieler auf der Karte wurden nicht angezeigt
+- `Sync` - Todes-Synchronisation funktionierte nicht richtig
+- `Professions` - Berufe wurden nicht gesynct
+- `Milestones` - Level-Tracking startete nicht
 
-### Achievements (46 Stück)
-Alle Erfolge basieren auf ÜBERLEBEN, nicht auf Toden anderer:
-- Überlebenszeit (1 Stunde bis 30 Tage)
-- Level-Meilensteine (10, 20, 30, 40, 50, 60)
-- Zonen-Erkundung
-- Gilden-Aktivität
-- Spezial-Erfolge
-
-### Sync-System
-- Protokoll v4.0 (abwärtskompatibel zu v1.2)
-- Online-User Tracking
-- PING/PONG System
-- Automatischer Sync bei Login
-
-### UI-Verbesserungen
-- Immersives Buch-Design (Pergament-Optik)
-- Elegante Todes-Einträge mit Klassenfarben
-- Statistik-Fenster
-- Erfolge-Fenster
-- Hall of Fame Fenster
+**Alle Gildenmitglieder muessen auf v4.6.0 updaten!**
 
 ---
 
-## Version 1.2 (Original)
-**Basis-Version von PsYke86**
+### 🗺️ ECHTZEIT Gilden-Karte
+Sieh deine Gildenmitglieder LIVE auf der Weltkarte!
 
-- Gilden-Tode tracken
-- Sync zwischen Gildenmitgliedern
-- Gildenchat-Ankündigungen
-- Sound bei Tod
-- Popup-Overlay
-- Deathlog-Integration
+**Features:**
+- **Echtzeit-Tracking**: Positionen werden alle 1.5 Sekunden gesynct
+- **Fluessige Bewegung**: Pins bewegen sich smooth durch Interpolation (20 FPS)
+- **Dezentes Design**: Kleiner farbiger Punkt in Klassenfarbe
+- **Name bei Hover**: Name erscheint nur beim Ueberfahren mit der Maus
+- **Tooltip**: Zone und letztes Update werden angezeigt
+
+**Technische Details:**
+| Einstellung | Wert |
+|-------------|------|
+| Broadcast-Intervall | 1.5 Sekunden |
+| Stale-Timeout | 10 Sekunden |
+| Pin-Update | 50ms (20 FPS) |
+| Interpolation | Smooth Easing |
+
+---
+
+### 🏆 Custom Titel-System
+Verdiene Titel durch Meilensteine - sichtbar fuer alle Gildenmitglieder!
+
+**31 Titel verfuegbar:**
+
+**Leichte Titel (ab 10-25 Kills):**
+| Titel | Anforderung |
+|-------|-------------|
+| Wegelagerer | 25 Humanoide |
+| Jaeger | 25 Wildtiere |
+| Grabschaender | 25 Untote |
+| Daemonentoeter | 25 Daemonen |
+| Elementarjaeger | 25 Elementare |
+| Welpentoeter | 10 Drachkin |
+| Riesentoeter | 10 Riesen |
+
+**Mittlere Titel (100 Kills):**
+| Titel | Anforderung |
+|-------|-------------|
+| Banditenjaeger | 100 Humanoide |
+| Wildnisjaeger | 100 Wildtiere |
+| Untotenjaeger | 100 Untote |
+| Daemonenbekaempfer | 100 Daemonen |
+| Funkensammler | 100 Elementare |
+
+**Hohe Titel:**
+- Seuchenreiniger (5.000 Untote)
+- Drachenbane (1.000 Drachkin)
+- Eredarbane (1.000 Daemonen)
+- Bestienmeister (2.000 Wildtiere)
+- Titanentoeter (250 Riesen)
+
+**Raid-Titel:**
+- Champion von Naxxramas (Kel'Thuzad)
+- Bezwinger von C'Thun
+- Drachentoeter (Nefarian)
+- Bezwinger des Feuerlords (Ragnaros)
+
+---
+
+### ⚔️ KillStats Modul
+Trackt automatisch getoetete Kreaturen nach Typ:
+
+**27 Kill-Meilensteine** (vorher 21):
+| Kreaturtyp | Stufen |
+|------------|--------|
+| Humanoide | 25, 100, 500, 2.000 |
+| Wildtiere | 25, 100, 500, 2.000 |
+| Untote | 25, 100, 500, 1.000, 5.000 |
+| Daemonen | 25, 100, 500, 1.000 |
+| Elementare | 25, 100, 500 |
+| Drachkin | 10, 50, 250, 1.000 |
+| Riesen | 10, 50, 250 |
+
+---
+
+### 📊 UI-Verbesserungen
+
+**Fortschrittsbalken fuer Kill-Meilensteine:**
+- Kompakte Leiste unter der Beschreibung
+- Stoppt bei 100% (kein Ueberlauf mehr)
+- Automatische Freischaltung wenn Ziel erreicht
+
+**Bessere Lesbarkeit:**
+- Charakter-Info in Gold statt Grau
+- Kategorie-Header groesser und kontrastreicher
+- Kill-Zeilen dynamisch hoeher fuer Progress-Platz
+
+**Tooltip-Fix:**
+- Titel erscheint nur noch einmal (nicht doppelt)
+
+---
+
+### 🔧 Neue Befehle
+
+| Befehl | Funktion |
+|--------|----------|
+| `/gdl titles` | Titel-Auswahl oeffnen |
+| `/gdl mytitles` | Eigene Titel anzeigen |
+| `/gdl kills` | Kill-Statistiken |
+| `/gdl killcheck` | Verpasste Meilensteine nachholen |
+| `/gdl trackstatus` | GuildTracker Status (LIVE/offline) |
+
+---
+
+### 🔧 Technische Aenderungen
+
+- **Module initialisieren jetzt korrekt** via PLAYER_ENTERING_WORLD
+- **Doppelte Initialisierung verhindert** durch self.initialized Flag
+- **Creature Type Caching** fuer Kill-Tracking (WoW gibt Typ nach Tod nicht)
+- **Interpolation** fuer fluessige Kartenpin-Bewegung
+- **OnUpdate Frame** fuer 20 FPS Pin-Updates
+
+---
+
+## Version 4.5.3
+**Weniger Chat-Spam - Nur eine Startup-Meldung**
+
+### Aenderungen
+- **Nur noch eine Login-Meldung:** Buch der Gefallenen: Aktiv (v4.5.3)
+- Entfernt: Alle Debug-Meldungen bei Login
+
+---
+
+# Guild Death Log - Changelog (English)
+
+## Version 4.6.0
+**MAJOR UPDATE: Real-Time Guild Map, Kill Milestones & Title System!**
+
+### 🚨 CRITICAL BUG FIX
+**Several modules were never initialized!** This affects:
+- `GuildTracker` - Players on map weren't displayed
+- `Sync` - Death synchronization didn't work properly
+- `Professions` - Professions weren't synced
+- `Milestones` - Level tracking didn't start
+
+**All guild members must update to v4.6.0!**
+
+---
+
+### 🗺️ REAL-TIME Guild Map
+See your guild members LIVE on the world map!
+
+**Features:**
+- **Real-time tracking**: Positions sync every 1.5 seconds
+- **Smooth movement**: Pins move fluidly through interpolation (20 FPS)
+- **Clean design**: Small colored dot in class color
+- **Name on hover**: Name only appears when hovering with mouse
+- **Tooltip**: Zone and last update shown
+
+**Technical Details:**
+| Setting | Value |
+|---------|-------|
+| Broadcast interval | 1.5 seconds |
+| Stale timeout | 10 seconds |
+| Pin update | 50ms (20 FPS) |
+| Interpolation | Smooth Easing |
+
+---
+
+### 🏆 Custom Title System
+Earn titles through milestones - visible to all guild members!
+
+**31 titles available:**
+
+**Easy Titles (10-25 kills):**
+| Title | Requirement |
+|-------|-------------|
+| Highwayman | 25 Humanoids |
+| Hunter | 25 Beasts |
+| Grave Robber | 25 Undead |
+| Demon Slayer | 25 Demons |
+| Elemental Hunter | 25 Elementals |
+| Whelp Slayer | 10 Dragonkin |
+| Giant Slayer | 10 Giants |
+
+**Medium Titles (100 kills):**
+| Title | Requirement |
+|-------|-------------|
+| Bandit Hunter | 100 Humanoids |
+| Wilderness Hunter | 100 Beasts |
+| Undead Hunter | 100 Undead |
+| Demon Fighter | 100 Demons |
+| Spark Collector | 100 Elementals |
+
+**High Titles:**
+- Plague Cleanser (5,000 Undead)
+- Dragonbane (1,000 Dragonkin)
+- Eredarbane (1,000 Demons)
+- Beastmaster (2,000 Beasts)
+- Titan Slayer (250 Giants)
+
+**Raid Titles:**
+- Champion of Naxxramas (Kel'Thuzad)
+- Slayer of C'Thun
+- Dragonslayer (Nefarian)
+- Firelord Slayer (Ragnaros)
+
+---
+
+### ⚔️ KillStats Module
+Automatically tracks killed creatures by type:
+
+**27 Kill Milestones** (previously 21):
+| Creature Type | Tiers |
+|---------------|-------|
+| Humanoids | 25, 100, 500, 2,000 |
+| Beasts | 25, 100, 500, 2,000 |
+| Undead | 25, 100, 500, 1,000, 5,000 |
+| Demons | 25, 100, 500, 1,000 |
+| Elementals | 25, 100, 500 |
+| Dragonkin | 10, 50, 250, 1,000 |
+| Giants | 10, 50, 250 |
+
+---
+
+### 📊 UI Improvements
+
+**Progress bars for kill milestones:**
+- Compact bar below description
+- Stops at 100% (no overflow)
+- Auto-unlock when goal reached
+
+**Better readability:**
+- Character info in gold instead of gray
+- Category headers larger and higher contrast
+- Kill rows dynamically taller for progress bar
+
+**Tooltip fix:**
+- Title now appears only once (not duplicated)
+
+---
+
+### 🔧 New Commands
+
+| Command | Function |
+|---------|----------|
+| `/gdl titles` | Open title selection |
+| `/gdl mytitles` | Show your titles |
+| `/gdl kills` | Kill statistics |
+| `/gdl killcheck` | Catch up missed milestones |
+| `/gdl trackstatus` | GuildTracker status (LIVE/offline) |
+
+---
+
+### 🔧 Technical Changes
+
+- **Modules now initialize correctly** via PLAYER_ENTERING_WORLD
+- **Double initialization prevented** through self.initialized flag
+- **Creature type caching** for kill tracking (WoW doesn't provide type after death)
+- **Interpolation** for smooth map pin movement
+- **OnUpdate frame** for 20 FPS pin updates
+
+---
+
+## Version 4.5.3
+**Less Chat Spam - Only One Startup Message**
+
+### Changes
+- **Only one login message:** Book of the Fallen: Active (v4.5.3)
+- Removed: All debug messages at login

@@ -1,8 +1,8 @@
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- MODUL: Milestones - Charakter-Meilensteine für Hardcore
 -- Ersetzt das alte Achievement-System
 -- 100% Character-basiert, synchronisiert mit Gilde
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 local addonName, addon = ...
 local GDL = _G["GuildDeathLog"]
@@ -12,15 +12,15 @@ local Milestones = {}
 local MILESTONE_PREFIX = "GDLMile"
 local COMM_DELIM = "|"
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- MEILENSTEIN-DEFINITIONEN
 -- Nur echte, bedeutungsvolle Meilensteine!
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 local MILESTONE_DEFS = {
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     -- LEVEL-MEILENSTEINE (Die wichtigsten im Hardcore!)
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     {id = "level_10", name = "Level 10", desc = "Hat Level 10 erreicht", icon = "Interface\\Icons\\Spell_Holy_WordFortitude", type = "level", threshold = 10, category = "level"},
     {id = "level_20", name = "Level 20", desc = "Hat Level 20 erreicht", icon = "Interface\\Icons\\Spell_Holy_GreaterHeal", type = "level", threshold = 20, category = "level"},
     {id = "level_30", name = "Level 30", desc = "Hat Level 30 erreicht", icon = "Interface\\Icons\\INV_Shield_06", type = "level", threshold = 30, category = "level"},
@@ -28,9 +28,9 @@ local MILESTONE_DEFS = {
     {id = "level_50", name = "Level 50", desc = "Hat Level 50 erreicht", icon = "Interface\\Icons\\INV_Shield_07", type = "level", threshold = 50, category = "level"},
     {id = "level_60", name = "Level 60 - UNSTERBLICH!", desc = "Hat Level 60 erreicht!", icon = "Interface\\Icons\\INV_Crown_01", type = "level", threshold = 60, category = "level"},
     
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     -- DUNGEON-BOSSE (Endboss jedes Dungeons)
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     -- Lowlevel Dungeons (10-25)
     {id = "boss_rfc", name = "Ragefire Chasm", desc = "Taragaman der Hungrige besiegt", icon = "Interface\\Icons\\Spell_Shadow_SummonFelGuard", type = "boss", bossId = 11520, category = "dungeon"},
     {id = "boss_wc", name = "Wailing Caverns", desc = "Mutanus der Verschlinger besiegt", icon = "Interface\\Icons\\INV_Misc_MonsterHead_01", type = "boss", bossId = 3654, category = "dungeon"},
@@ -63,9 +63,9 @@ local MILESTONE_DEFS = {
     {id = "boss_strat_ud", name = "Strat: Untot", desc = "Baron Rivendare besiegt", icon = "Interface\\Icons\\INV_Sword_25", type = "boss", bossId = 10440, category = "dungeon"},
     {id = "boss_strat_live", name = "Strat: Lebend", desc = "Balnazzar besiegt", icon = "Interface\\Icons\\Spell_Shadow_PainSpike", type = "boss", bossId = 10813, category = "dungeon"},
     
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     -- RAID-BOSSE
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     {id = "boss_ony", name = "Onyxia", desc = "Onyxia besiegt!", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black", type = "boss", bossId = 10184, category = "raid"},
     {id = "boss_mc_rag", name = "Molten Core: Ragnaros", desc = "Ragnaros besiegt!", icon = "Interface\\Icons\\Spell_Fire_Ragnaros_Lavabolt", type = "boss", bossId = 11502, category = "raid"},
     {id = "boss_bwl_nef", name = "BWL: Nefarian", desc = "Nefarian besiegt!", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", type = "boss", bossId = 11583, category = "raid"},
@@ -74,9 +74,9 @@ local MILESTONE_DEFS = {
     {id = "boss_aq40_cthun", name = "AQ40: C'Thun", desc = "C'Thun besiegt!", icon = "Interface\\Icons\\Spell_Nature_WispHeal", type = "boss", bossId = 15727, category = "raid"},
     {id = "boss_naxx_kt", name = "Naxxramas: Kel'Thuzad", desc = "Kel'Thuzad besiegt!", icon = "Interface\\Icons\\INV_Trinket_Naxxramas06", type = "boss", bossId = 15990, category = "raid"},
     
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     -- BERUFE-MEILENSTEINE
-    -- ═══════════════════════════════════════════════════════════
+    -- ===========================================================
     {id = "prof_150", name = "Geselle", desc = "Einen Beruf auf 150 gebracht", icon = "Interface\\Icons\\Trade_BlackSmithing", type = "profession", threshold = 150, category = "profession"},
     {id = "prof_225", name = "Experte", desc = "Einen Beruf auf 225 gebracht", icon = "Interface\\Icons\\Trade_LeatherWorking", type = "profession", threshold = 225, category = "profession"},
     {id = "prof_300", name = "Meister", desc = "Einen Beruf auf 300 gebracht!", icon = "Interface\\Icons\\Trade_Engineering", type = "profession", threshold = 300, category = "profession"},
@@ -85,6 +85,50 @@ local MILESTONE_DEFS = {
     {id = "fish_300", name = "Meisterangler", desc = "Angeln auf 300", icon = "Interface\\Icons\\Trade_Fishing", type = "fishing", threshold = 300, category = "profession"},
     {id = "cook_300", name = "Meisterkoch", desc = "Kochen auf 300", icon = "Interface\\Icons\\INV_Misc_Food_15", type = "cooking", threshold = 300, category = "profession"},
     {id = "firstaid_300", name = "Meister-Ersthelfer", desc = "Erste Hilfe auf 300", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice", type = "firstaid", threshold = 300, category = "profession"},
+    
+    -- ===========================================================
+    -- KILL-MEILENSTEINE - Kreaturtypen
+    -- ===========================================================
+    -- Humanoide (überall - sehr häufig, daher frühe Meilensteine)
+    {id = "kill_humanoid_25", name = "Wegelagerer", desc = "25 Humanoide getötet", icon = "Interface\\Icons\\Ability_Rogue_Ambush", type = "kills", creatureType = "humanoid", threshold = 25, category = "kills"},
+    {id = "kill_humanoid_100", name = "Banditenjaeger", desc = "100 Humanoide getötet", icon = "Interface\\Icons\\Ability_Rogue_Disguise", type = "kills", creatureType = "humanoid", threshold = 100, category = "kills"},
+    {id = "kill_humanoid_500", name = "Kopfgeldjaeger", desc = "500 Humanoide getötet", icon = "Interface\\Icons\\INV_Misc_Coin_02", type = "kills", creatureType = "humanoid", threshold = 500, category = "kills"},
+    {id = "kill_humanoid_2000", name = "Schlaechter", desc = "2.000 Humanoide getötet!", icon = "Interface\\Icons\\Ability_Warrior_BattleShout", type = "kills", creatureType = "humanoid", threshold = 2000, category = "kills"},
+    
+    -- Wildtiere (überall - sehr häufig)
+    {id = "kill_beast_25", name = "Jaeger", desc = "25 Wildtiere getötet", icon = "Interface\\Icons\\Ability_Hunter_SniperShot", type = "kills", creatureType = "beast", threshold = 25, category = "kills"},
+    {id = "kill_beast_100", name = "Wildnisjaeger", desc = "100 Wildtiere getötet", icon = "Interface\\Icons\\Ability_Hunter_BeastCall", type = "kills", creatureType = "beast", threshold = 100, category = "kills"},
+    {id = "kill_beast_500", name = "Grosswildjaeger", desc = "500 Wildtiere getötet", icon = "Interface\\Icons\\Ability_Hunter_BeastTaming", type = "kills", creatureType = "beast", threshold = 500, category = "kills"},
+    {id = "kill_beast_2000", name = "Bestienmeister", desc = "2.000 Wildtiere getötet!", icon = "Interface\\Icons\\Ability_Hunter_BeastMastery", type = "kills", creatureType = "beast", threshold = 2000, category = "kills"},
+    
+    -- Untote (Plaguelands, Scholo, Strat)
+    {id = "kill_undead_25", name = "Grabschaender", desc = "25 Untote getötet", icon = "Interface\\Icons\\Spell_Shadow_DeathCoil", type = "kills", creatureType = "undead", threshold = 25, category = "kills"},
+    {id = "kill_undead_100", name = "Untotenjaeger", desc = "100 Untote getötet", icon = "Interface\\Icons\\Spell_Shadow_AnimateDead", type = "kills", creatureType = "undead", threshold = 100, category = "kills"},
+    {id = "kill_undead_500", name = "Untotenschlaechter", desc = "500 Untote getötet", icon = "Interface\\Icons\\Spell_Shadow_RaiseDead", type = "kills", creatureType = "undead", threshold = 500, category = "kills"},
+    {id = "kill_undead_1000", name = "Lichbane", desc = "1.000 Untote getötet", icon = "Interface\\Icons\\Spell_Holy_SenseUndead", type = "kills", creatureType = "undead", threshold = 1000, category = "kills"},
+    {id = "kill_undead_5000", name = "Seuchenreiniger", desc = "5.000 Untote getötet!", icon = "Interface\\Icons\\Spell_Holy_PrayerOfHealing", type = "kills", creatureType = "undead", threshold = 5000, category = "kills"},
+    
+    -- Dämonen (Felwood, DM, Winterspring)
+    {id = "kill_demon_25", name = "Daemonentoeter", desc = "25 Dämonen getötet", icon = "Interface\\Icons\\Spell_Shadow_SummonImp", type = "kills", creatureType = "demon", threshold = 25, category = "kills"},
+    {id = "kill_demon_100", name = "Daemonenbekaempfer", desc = "100 Dämonen getötet", icon = "Interface\\Icons\\Spell_Shadow_SummonFelGuard", type = "kills", creatureType = "demon", threshold = 100, category = "kills"},
+    {id = "kill_demon_500", name = "Daemonenschlaechter", desc = "500 Dämonen getötet", icon = "Interface\\Icons\\Spell_Shadow_Metamorphosis", type = "kills", creatureType = "demon", threshold = 500, category = "kills"},
+    {id = "kill_demon_1000", name = "Eredarbane", desc = "1.000 Dämonen getötet!", icon = "Interface\\Icons\\Spell_Shadow_DemonicTactics", type = "kills", creatureType = "demon", threshold = 1000, category = "kills"},
+    
+    -- Elementare (Silithus, BRD, MC)
+    {id = "kill_elemental_25", name = "Elementarjaeger", desc = "25 Elementare getötet", icon = "Interface\\Icons\\Spell_Fire_Fire", type = "kills", creatureType = "elemental", threshold = 25, category = "kills"},
+    {id = "kill_elemental_100", name = "Funkensammler", desc = "100 Elementare getötet", icon = "Interface\\Icons\\Spell_Fire_FireBolt", type = "kills", creatureType = "elemental", threshold = 100, category = "kills"},
+    {id = "kill_elemental_500", name = "Elementarbrecher", desc = "500 Elementare getötet!", icon = "Interface\\Icons\\Spell_Fire_Elemental_Totem", type = "kills", creatureType = "elemental", threshold = 500, category = "kills"},
+    
+    -- Drachkin (UBRS, BWL, Burning Steppes)
+    {id = "kill_dragonkin_10", name = "Welpentoeter", desc = "10 Drachkin getötet", icon = "Interface\\Icons\\INV_Misc_MonsterScales_02", type = "kills", creatureType = "dragonkin", threshold = 10, category = "kills"},
+    {id = "kill_dragonkin_50", name = "Schuppensammler", desc = "50 Drachkin getötet", icon = "Interface\\Icons\\INV_Misc_MonsterScales_05", type = "kills", creatureType = "dragonkin", threshold = 50, category = "kills"},
+    {id = "kill_dragonkin_250", name = "Drachenjaeger", desc = "250 Drachkin getötet", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", type = "kills", creatureType = "dragonkin", threshold = 250, category = "kills"},
+    {id = "kill_dragonkin_1000", name = "Drachenbane", desc = "1.000 Drachkin getötet!", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_Black", type = "kills", creatureType = "dragonkin", threshold = 1000, category = "kills"},
+    
+    -- Riesen (Azshara, Feralas)
+    {id = "kill_giant_10", name = "Riesentoeter", desc = "10 Riesen getötet", icon = "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", type = "kills", creatureType = "giant", threshold = 10, category = "kills"},
+    {id = "kill_giant_50", name = "Riesen-Bezwinger", desc = "50 Riesen getötet", icon = "Interface\\Icons\\INV_Misc_Foot_Centaur", type = "kills", creatureType = "giant", threshold = 50, category = "kills"},
+    {id = "kill_giant_250", name = "Titanentoeter", desc = "250 Riesen getötet!", icon = "Interface\\Icons\\INV_Stone_15", type = "kills", creatureType = "giant", threshold = 250, category = "kills"},
 }
 
 -- Boss-ID zu Milestone-ID Mapping für schnellen Lookup
@@ -95,11 +139,15 @@ for _, m in ipairs(MILESTONE_DEFS) do
     end
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- INITIALISIERUNG
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:Initialize()
+    -- Verhindere doppelte Initialisierung
+    if self.initialized then return end
+    self.initialized = true
+    
     -- Registriere Addon-Prefix für Sync
     C_ChatInfo.RegisterAddonMessagePrefix(MILESTONE_PREFIX)
     
@@ -125,20 +173,18 @@ function Milestones:Initialize()
     -- Stats regelmäßig aktualisieren
     C_Timer.NewTicker(60, function() self:TrackPlayerStats() end)
     
-    -- Bei Initialize sofort Level prüfen!
+    -- Bei Initialize sofort Level prüfen (still, ohne Chat-Meldung)
     C_Timer.After(2, function() 
-        GDL:Print("|cff00AAFF[Milestones]|r Modul geladen - prüfe Meilensteine...")
         self:CheckCurrentLevel() 
         self:TrackPlayerStats()
     end)
     
     GDL:Debug("Milestones: Initialisiert für " .. charKey)
-    GDL:Print("|cff00AAFF[Milestones]|r Initialisiert für " .. charKey)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- CHARACTER KEY - WICHTIG für korrekte Zuordnung!
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:GetCharacterKey(name, realm)
     -- Wenn keine Parameter, nutze aktuellen Spieler
@@ -161,9 +207,9 @@ function Milestones:GetCharacterData(charKey)
     return GuildDeathLogDB.milestones[charKey]
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- EVENT REGISTRATION - WIE WoW_Hardcore ES MACHT!
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:RegisterEvents()
     if self.eventFrame then return end
@@ -187,10 +233,10 @@ function Milestones:RegisterEvents()
     GDL:Debug("Milestones: Events registriert")
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- PLAYER_LEVEL_UP - Direkt vom Event, wie WoW_Hardcore!
 -- Das erste Argument ist das NEUE LEVEL!
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:PLAYER_LEVEL_UP(newLevel, ...)
     -- newLevel ist das NEUE Level nach dem Level-Up!
@@ -209,9 +255,9 @@ function Milestones:PLAYER_LEVEL_UP(newLevel, ...)
     end
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- PLAYER_LOGIN - Beim Einloggen alle Meilensteine prüfen
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:PLAYER_LOGIN()
     GDL:Debug("Milestones: PLAYER_LOGIN Event")
@@ -222,9 +268,9 @@ function Milestones:PLAYER_LOGIN()
     end)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- PLAYER_ENTERING_WORLD - Bei jedem Zonenwechsel/Login
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     GDL:Debug("Milestones: PLAYER_ENTERING_WORLD (initial: " .. tostring(isInitialLogin) .. ", reload: " .. tostring(isReloadingUi) .. ")")
@@ -238,9 +284,9 @@ function Milestones:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUi)
     end
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- COMBAT_LOG_EVENT_UNFILTERED - Boss-Kills tracken
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:COMBAT_LOG_EVENT_UNFILTERED()
     local _, subEvent, _, sourceGUID, sourceName, _, _, destGUID, destName = CombatLogGetCurrentEventInfo()
@@ -266,9 +312,9 @@ function Milestones:COMBAT_LOG_EVENT_UNFILTERED()
     self:UnlockMilestone(milestoneId, charKey, charName, charLevel)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- CHAT_MSG_ADDON - Gilden-Sync
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:CHAT_MSG_ADDON(prefix, message, channel, sender)
     if prefix == MILESTONE_PREFIX and channel == "GUILD" then
@@ -276,9 +322,9 @@ function Milestones:CHAT_MSG_ADDON(prefix, message, channel, sender)
     end
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- CHECK CURRENT LEVEL - Prüft das aktuelle Level beim Login
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:CheckCurrentLevel()
     local currentLevel = UnitLevel("player")
@@ -286,7 +332,6 @@ function Milestones:CheckCurrentLevel()
     local charName = UnitName("player")
     
     GDL:Debug("Milestones: CheckCurrentLevel - " .. charName .. " ist Level " .. currentLevel)
-    GDL:Print("|cffAAAAFF[Milestones]|r Prüfe Level " .. currentLevel .. " für " .. charName)
     
     local count = 0
     -- Alle Level-Meilensteine bis zum aktuellen Level freischalten
@@ -295,8 +340,8 @@ function Milestones:CheckCurrentLevel()
             local charData = self:GetCharacterData(charKey)
             if not charData.unlocked[m.id] then
                 GDL:Debug("Milestones: Nachholen Level-Meilenstein: " .. m.id .. " (aktuelles Level: " .. currentLevel .. ")")
-                -- NICHT silent - zeige Popup für nachgeholte Meilensteine!
-                self:UnlockMilestone(m.id, charKey, charName, currentLevel, false)
+                -- Still nachholen ohne Popup beim Login
+                self:UnlockMilestone(m.id, charKey, charName, currentLevel, true)
                 count = count + 1
             else
                 GDL:Debug("Milestones: " .. m.id .. " bereits freigeschaltet")
@@ -305,15 +350,13 @@ function Milestones:CheckCurrentLevel()
     end
     
     if count > 0 then
-        GDL:Print("|cff00FF00" .. count .. " Level-Meilensteine nachgeholt!|r")
-    else
-        GDL:Print("|cffAAAAFF[Milestones]|r Keine neuen Level-Meilensteine")
+        GDL:Debug("Milestones: " .. count .. " Level-Meilensteine nachgeholt")
     end
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- TEST & DEBUG FUNKTIONEN
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:TestLevelMilestones()
     local currentLevel = UnitLevel("player")
@@ -321,7 +364,7 @@ function Milestones:TestLevelMilestones()
     local charName = UnitName("player")
     local charData = self:GetCharacterData(charKey)
     
-    GDL:Print("═══ Meilenstein-Debug ═══")
+    GDL:Print("=== Meilenstein-Debug ===")
     GDL:Print("Charakter: " .. charName .. " (" .. charKey .. ")")
     GDL:Print("Aktuelles Level: " .. currentLevel)
     GDL:Print("Gespeicherte Daten: " .. (charData and "JA" or "NEIN"))
@@ -353,7 +396,7 @@ function Milestones:TestLevelMilestones()
         end
     end
     
-    GDL:Print("═══════════════════════")
+    GDL:Print("=======================")
 end
 
 function Milestones:ForceUnlockCurrentLevel()
@@ -387,9 +430,9 @@ function Milestones:GetNPCIdFromGUID(guid)
     return tonumber(npcId)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- BERUFE TRACKING
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:TrackPlayerStats()
     local charKey = self:GetCharacterKey()
@@ -456,9 +499,9 @@ function Milestones:CheckAllMilestones()
     self:TrackPlayerStats()
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- MEILENSTEIN FREISCHALTEN
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:UnlockMilestone(milestoneId, charKey, charName, charLevel, silent)
     local charData = self:GetCharacterData(charKey)
@@ -496,14 +539,20 @@ function Milestones:UnlockMilestone(milestoneId, charKey, charName, charLevel, s
         
         -- An Gilde senden
         self:BroadcastMilestone(milestoneId, charKey, charName, charLevel)
+        
+        -- Titles-Modul benachrichtigen (für neue Titel)
+        local Titles = GDL:GetModule("Titles")
+        if Titles and Titles.OnMilestoneUnlocked then
+            Titles:OnMilestoneUnlocked(milestoneId)
+        end
     end
     
     return true
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- GILDEN-SYNC
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:BroadcastMilestone(milestoneId, charKey, charName, charLevel)
     if not IsInGuild() then return end
@@ -624,9 +673,9 @@ function Milestones:OnGuildMilestone(milestoneId, charKey, charName, charLevel, 
     GDL:Debug("Milestones: Gilden-Meilenstein: " .. charName .. " -> " .. milestoneId)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- UI: POPUP
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:ShowUnlockPopup(milestone, charName)
     if not self.popup then
@@ -692,9 +741,9 @@ function Milestones:ShowUnlockPopup(milestone, charName)
     end)
 end
 
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 -- API FUNKTIONEN
--- ══════════════════════════════════════════════════════════════
+-- ==============================================================
 
 function Milestones:GetAllMilestones()
     return MILESTONE_DEFS
@@ -776,3 +825,18 @@ GDL:RegisterModule("Milestones", Milestones)
 
 -- Auch als "Achievements" registrieren für Abwärtskompatibilität
 GDL:RegisterModule("Achievements", Milestones)
+
+-- ======================================================================
+-- MODULE INITIALIZATION
+-- ======================================================================
+
+local initFrame = CreateFrame("Frame")
+initFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+initFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_ENTERING_WORLD" then
+        C_Timer.After(2, function()
+            Milestones:Initialize()
+        end)
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    end
+end)

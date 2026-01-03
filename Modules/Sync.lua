@@ -18,6 +18,10 @@ local recentDeaths = {}
 C_ChatInfo.RegisterAddonMessagePrefix(ADDON_PREFIX)
 
 function Sync:Initialize()
+    -- Verhindere doppelte Initialisierung
+    if self.initialized then return end
+    self.initialized = true
+    
     -- Prefix wurde bereits oben registriert
     GDL:Debug("Sync Initialize gestartet")
     
@@ -25,15 +29,43 @@ function Sync:Initialize()
     self.eventFrame:RegisterEvent("CHAT_MSG_ADDON")
     self.eventFrame:RegisterEvent("CHAT_MSG_CHANNEL")
     self.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    self.eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    self.eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
     self.eventFrame:SetScript("OnEvent", function(_, event, ...) self:HandleEvent(event, ...) end)
     
     syncedUsers = GuildDeathLogDB.syncUsers or {}
     GDL:Debug("Sync: " .. self:CountTable(syncedUsers) .. " gespeicherte User geladen")
     
-    -- Ping alle 5 Minuten
-    C_Timer.NewTicker(300, function() self:SendPing() end)
+    -- ════════════════════════════════════════════════════════
+    -- SYNC-TIMER: Sanfte Synchronisation (nicht mehr aggressiv!)
+    -- ════════════════════════════════════════════════════════
     
-    GDL:Print("|cff00AAFF[Sync]|r Gilden-Sync aktiv!")
+    -- Ping alle 5 Minuten (war 90 Sekunden - viel zu oft!)
+    C_Timer.NewTicker(300, function() 
+        if IsInGuild() then 
+            self:SendPing() 
+        end
+    end)
+    
+    -- Automatischer Sync alle 15 Minuten (war 5 Minuten)
+    C_Timer.NewTicker(900, function() 
+        if IsInGuild() then
+            self:RequestFullSync()
+        end
+    end)
+    
+    -- KEIN automatischer Push mehr! Nur auf Anfrage.
+    -- (War alle 3 Minuten - das hat den Chat gespammt)
+    
+    -- Beim Start: Nur EINMAL sync nach 10 Sekunden
+    C_Timer.After(10, function() 
+        if IsInGuild() then 
+            self:SendPing()
+            self:RequestFullSync() 
+        end
+    end)
+    
+    GDL:Debug("Sync: Gilden-Sync aktiv!")
 end
 
 function Sync:CountTable(t)
@@ -44,24 +76,17 @@ end
 
 function Sync:HandleEvent(event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
-        -- Bei Login: PING senden und Sync anfordern
-        C_Timer.After(3, function() 
-            if IsInGuild() then
-                self:SendPing()
-                GDL:Debug("PING nach Login gesendet")
-            end
-        end)
-        C_Timer.After(8, function() 
-            if IsInGuild() then
-                self:RequestFullSync()
+        -- Timer sind bereits in Initialize gesetzt
+        GDL:Debug("PLAYER_ENTERING_WORLD - Sync wird gestartet")
+    elseif event == "GROUP_ROSTER_UPDATE" or event == "GUILD_ROSTER_UPDATE" then
+        -- Bei Gilden/Gruppenänderung: Nur Ping senden, KEIN Broadcast!
+        C_Timer.After(5, function()
+            if IsInGuild() then 
+                self:SendPing() 
             end
         end)
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, channel, sender = ...
-        -- WICHTIG: Immer loggen was reinkommt!
-        if prefix == ADDON_PREFIX then
-            GDL:Debug("ADDON_MSG empfangen: " .. (message or "?"):sub(1,50) .. " von " .. (sender or "?") .. " (" .. (channel or "?") .. ")")
-        end
         if prefix == ADDON_PREFIX and channel == "GUILD" then
             self:HandleAddonMessage(message, sender)
         end
@@ -81,7 +106,7 @@ function Sync:SendPing()
     end
     local msg = COMM.PING .. COMM_DELIM .. GDL.version
     local success = C_ChatInfo.SendAddonMessage(ADDON_PREFIX, msg, "GUILD")
-    GDL:Debug("PING gesendet: " .. tostring(success) .. " (Prefix: " .. ADDON_PREFIX .. ")")
+    GDL:Debug("-> PING")
 end
 
 function Sync:HandleAddonMessage(message, sender)
@@ -104,7 +129,15 @@ function Sync:HandleAddonMessage(message, sender)
         cmd = message
     end
     
-    GDL:Debug("Sync empfangen: " .. (cmd or "?") .. " von " .. (sender or "?"))
+    -- DEBUG: Nur SYNCREQ loggen (PING/PONG/SYNCDAT werden separat behandelt)
+    if cmd == COMM.SYNC_REQ or cmd == "SYNCREQ" then
+        GDL:Debug("<- SYNCREQ " .. sender)
+    end
+    
+    -- Ist dieser User neu? (noch nie gesehen oder lange offline)
+    local isNewUser = not syncedUsers[sender] or 
+                      not syncedUsers[sender].lastSeen or 
+                      (time() - (syncedUsers[sender].lastSeen or 0)) > 3600  -- 1 Stunde offline
     
     -- JEDE Nachricht registriert den User (v1.2 Kompatibilitaet!)
     syncedUsers[sender] = syncedUsers[sender] or {}
@@ -114,15 +147,31 @@ function Sync:HandleAddonMessage(message, sender)
     
     if cmd == COMM.PING or cmd == "PING" then
         syncedUsers[sender].version = data or "?"
+        -- Sende PONG zurück
         C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.PONG .. COMM_DELIM .. GDL.version, "GUILD")
-        GDL:Debug("PONG gesendet an " .. sender)
+        -- Debug: Kurz und knapp
+        GDL:Debug("<- PING " .. sender .. " v" .. (data or "?"))
+        
+        -- ══════════════════════════════════════════════════════
+        -- WICHTIG: Bei PING von neuem User - sende unsere Daten!
+        -- ══════════════════════════════════════════════════════
+        if isNewUser then
+            GDL:Debug("Neuer User: " .. sender .. " - sende Daten")
+            C_Timer.After(2, function()
+                self:SendRecentDeaths(sender, 50)  -- Letzte 50 Tode senden
+            end)
+        end
+        
     elseif cmd == COMM.PONG or cmd == "PONG" then
         syncedUsers[sender].version = data or "?"
-        GDL:Debug("User registriert: " .. sender .. " v" .. (data or "?"))
+        GDL:Debug("<- PONG " .. sender .. " v" .. (data or "?"))
+        
     elseif cmd == COMM.DEATH or cmd == "DEATH" then
         self:HandleDeath(sender, data)
+        
     elseif cmd == COMM.SYNC_REQ or cmd == "SYNCREQ" then
         self:HandleSyncRequest(sender, data)
+        
     elseif cmd == COMM.SYNC_DATA or cmd == "SYNCDAT" then
         self:HandleSyncData(sender, data)
     end
@@ -273,16 +322,19 @@ function Sync:BroadcastDeath(death)
     -- DANN das neue v4.0 Format senden
     local v40Success = C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.DEATH .. COMM_DELIM .. self:SerializeDeath(death), "GUILD")
     GDL:Debug("v4.0 Format gesendet: " .. tostring(v40Success))
-    
-    GDL:Print("|cff00FF00[Sync]|r Tod von " .. (death.name or "?") .. " an Gilde gesendet!")
+    GDL:Debug("Sync: Tod von " .. (death.name or "?") .. " an Gilde gesendet")
 end
 
 function Sync:HandleDeath(sender, data)
     local death = self:DeserializeDeath(data)
-    if death then self:ProcessIncomingDeath(death, sender) end
+    if death then 
+        -- Nur anzeigen wenn der Tod weniger als 30 SEKUNDEN alt ist = wirklich LIVE!
+        local isHistorical = death.timestamp and (time() - death.timestamp) > 30
+        self:ProcessIncomingDeath(death, sender, isHistorical) 
+    end
 end
 
-function Sync:ProcessIncomingDeath(death, source)
+function Sync:ProcessIncomingDeath(death, source, isSilent)
     if self:IsDuplicate(death) then 
         GDL:Debug("Duplikat ignoriert: " .. (death.name or "?"))
         return 
@@ -300,29 +352,46 @@ function Sync:ProcessIncomingDeath(death, source)
         GDL:Debug("Tod gespeichert: " .. (death.name or "?") .. " von " .. (source or "?"))
     end
     
-    -- IMMER im Chat anzeigen!
-    GDL:Print("|cffFF6666" .. (death.name or "?") .. "|r ist gefallen! (Lvl " .. (death.level or "?") .. " - via " .. (source or "Sync") .. ")")
-    
-    if GuildDeathLogDB.settings.sound then 
-        PlaySound(8959, "Master") 
-        GDL:Debug("Sound abgespielt")
-    end
-    if GuildDeathLogDB.settings.overlay then
-        local UI = GDL:GetModule("UI")
-        if UI then 
-            UI:ShowOverlay(death, true) 
-            GDL:Debug("Overlay angezeigt")
+    -- Memorial: Verstorbene aus Berufe-Liste entfernen
+    local Memorial = GDL:GetModule("Memorial")
+    if Memorial then
+        Memorial:OnDeath(death)
+        -- Gedenkhalle aktualisieren wenn offen
+        if Memorial.frame and Memorial.frame:IsShown() then
+            Memorial:UpdateMemorialList()
         end
     end
     
+    -- GuildStats aktualisieren wenn offen
+    local GuildStats = GDL:GetModule("GuildStats")
+    if GuildStats and GuildStats.frame and GuildStats.frame:IsShown() then
+        GuildStats:UpdateDeathsList()
+    end
+    
+    -- Professions aktualisieren wenn offen (Verstorbene entfernen)
+    local Professions = GDL:GetModule("Professions")
+    if Professions and Professions.frame and Professions.frame:IsShown() then
+        Professions:UpdateWindow()
+    end
+    
+    -- Nur bei NEUEN Toden anzeigen, NICHT bei historischem Resync!
+    if not isSilent then
+        GDL:Print("|cffFF6666" .. (death.name or "?") .. "|r ist gefallen! (Lvl " .. (death.level or "?") .. ")")
+        
+        if GuildDeathLogDB.settings.sound then 
+            PlaySound(8959, "Master") 
+        end
+        if GuildDeathLogDB.settings.overlay then
+            local UI = GDL:GetModule("UI")
+            if UI then 
+                UI:ShowOverlay(death, true) 
+            end
+        end
+    end
+    
+    -- UI Update immer (auch silent)
     local UI = GDL:GetModule("UI")
     if UI and UI.mainFrame and UI.mainFrame:IsShown() then UI:UpdateChronicle() end
-    
-    -- Achievements triggern
-    local Achievements = GDL:GetModule("Achievements")
-    if Achievements then
-        Achievements:OnDeathWitnessed()
-    end
 end
 
 function Sync:RequestFullSync()
@@ -330,8 +399,9 @@ function Sync:RequestFullSync()
         GDL:Debug("Sync: Nicht in Gilde")
         return 
     end
-    if time() - lastSyncRequest < 30 then 
-        GDL:Debug("Sync: Cooldown aktiv")
+    -- Cooldown von 30 auf 15 Sekunden reduziert
+    if time() - lastSyncRequest < 15 then 
+        GDL:Debug("Sync: Cooldown aktiv (" .. (15 - (time() - lastSyncRequest)) .. "s)")
         return 
     end
     lastSyncRequest = time()
@@ -350,8 +420,7 @@ function Sync:RequestFullSync()
     -- Altes Format (v1.2)
     C_ChatInfo.SendAddonMessage(ADDON_PREFIX, "SYNC_REQ:" .. lastTimestamp, "GUILD")
     
-    GDL:Print(GDL:L("SYNC_REQUESTED"))
-    GDL:Debug("Sync angefordert (beide Formate)")
+    GDL:Debug("-> SYNCREQ (seit " .. lastTimestamp .. ")")
 end
 
 function Sync:HandleSyncRequest(sender, data)
@@ -362,18 +431,137 @@ function Sync:HandleSyncRequest(sender, data)
     local guildData = GDL:GetGuildData()
     if not guildData then return end
     
-    local count = 0
+    -- Sammle alle Tode die neuer sind als deren Timestamp
+    local toSend = {}
     for _, death in ipairs(guildData.deaths or {}) do
-        if (death.timestamp or 0) > theirTimestamp and count < 20 then
-            C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.SYNC_DATA .. COMM_DELIM .. self:SerializeDeath(death), "GUILD")
-            count = count + 1
+        if (death.timestamp or 0) > theirTimestamp then
+            table.insert(toSend, death)
         end
+    end
+    
+    -- Sortiere nach Zeit (neueste zuerst)
+    table.sort(toSend, function(a, b) return (a.timestamp or 0) > (b.timestamp or 0) end)
+    
+    -- Sende bis zu 50 Tode (statt 20), gestaffelt um Spam zu vermeiden
+    local count = 0
+    local maxToSend = math.min(#toSend, 50)
+    
+    GDL:Debug("-> " .. maxToSend .. " Tode an " .. sender)
+    
+    for i, death in ipairs(toSend) do
+        if count >= 50 then break end
+        
+        -- Gestaffelt senden: alle 0.2 Sekunden eine Nachricht
+        C_Timer.After(count * 0.2, function()
+            C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.SYNC_DATA .. COMM_DELIM .. self:SerializeDeath(death), "GUILD")
+        end)
+        count = count + 1
     end
 end
 
+-- ══════════════════════════════════════════════════════════════
+-- NEUE FUNKTION: Sende die letzten X Tode an die Gilde
+-- ══════════════════════════════════════════════════════════════
+function Sync:SendRecentDeaths(targetUser, maxCount)
+    maxCount = maxCount or 30
+    
+    local guildData = GDL:GetGuildData()
+    if not guildData then return end
+    
+    -- Sammle alle Tode
+    local allDeaths = {}
+    for _, death in ipairs(guildData.deaths or {}) do
+        table.insert(allDeaths, death)
+    end
+    
+    -- Sortiere nach Zeit (neueste zuerst)
+    table.sort(allDeaths, function(a, b) return (a.timestamp or 0) > (b.timestamp or 0) end)
+    
+    -- Sende die neuesten X Tode, gestaffelt
+    local count = 0
+    for i, death in ipairs(allDeaths) do
+        if count >= maxCount then break end
+        
+        C_Timer.After(count * 0.3, function()
+            C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.SYNC_DATA .. COMM_DELIM .. self:SerializeDeath(death), "GUILD")
+        end)
+        count = count + 1
+    end
+    
+    if count > 0 then
+        GDL:Debug("-> " .. count .. " Tode (Auto)")
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- NEUE FUNKTION: Broadcast - Pusht Tode an ALLE in der Gilde
+-- Wird regelmäßig aufgerufen um sicherzustellen dass alle synced sind
+-- ══════════════════════════════════════════════════════════════
+function Sync:BroadcastRecentDeaths(maxCount)
+    if not IsInGuild() then return end
+    maxCount = maxCount or 20
+    
+    local guildData = GDL:GetGuildData()
+    if not guildData or not guildData.deaths then return end
+    
+    -- Nur Tode der letzten 7 Tage pushen
+    local sevenDaysAgo = time() - (7 * 24 * 60 * 60)
+    
+    -- Sammle relevante Tode
+    local recentDeathsList = {}
+    for _, death in ipairs(guildData.deaths) do
+        if (death.timestamp or 0) > sevenDaysAgo then
+            table.insert(recentDeathsList, death)
+        end
+    end
+    
+    -- Sortiere nach Zeit (neueste zuerst)
+    table.sort(recentDeathsList, function(a, b) return (a.timestamp or 0) > (b.timestamp or 0) end)
+    
+    -- Sende gestaffelt
+    local count = 0
+    for i, death in ipairs(recentDeathsList) do
+        if count >= maxCount then break end
+        
+        C_Timer.After(count * 0.25, function()
+            C_ChatInfo.SendAddonMessage(ADDON_PREFIX, COMM.SYNC_DATA .. COMM_DELIM .. self:SerializeDeath(death), "GUILD")
+        end)
+        count = count + 1
+    end
+    
+    if count > 0 then
+        GDL:Debug("-> " .. count .. " Tode (Broadcast)")
+    end
+end
+
+-- Zähler für empfangene Sync-Daten (für Debug-Zusammenfassung)
+local syncDataReceived = 0
+local syncDataLastSender = nil
+local syncDataTimer = nil
+
 function Sync:HandleSyncData(sender, data)
     local death = self:DeserializeDeath(data)
-    if death then self:ProcessIncomingDeath(death, sender .. " (sync)") end
+    if death then 
+        -- Prüfe ob der Tod älter als 30 SEKUNDEN ist = historischer Sync = SILENT
+        local isHistorical = death.timestamp and (time() - death.timestamp) > 30
+        self:ProcessIncomingDeath(death, sender .. " (sync)", isHistorical) 
+        
+        -- Zähle empfangene Daten für Debug-Zusammenfassung
+        syncDataReceived = syncDataReceived + 1
+        syncDataLastSender = sender
+        
+        -- Timer für Zusammenfassung (nach 2 Sekunden ohne neue Daten)
+        if syncDataTimer then
+            syncDataTimer:Cancel()
+        end
+        syncDataTimer = C_Timer.NewTimer(2, function()
+            if syncDataReceived > 0 then
+                GDL:Debug(syncDataLastSender .. " -> " .. syncDataReceived .. " Tode empfangen")
+                syncDataReceived = 0
+                syncDataLastSender = nil
+            end
+        end)
+    end
 end
 
 function Sync:SendPendingSync()
@@ -471,6 +659,27 @@ function Sync:RecordLocalDeath(deathData)
     table.insert(guildData.deaths, deathData)
     self:BroadcastDeath(deathData)
     
+    -- Memorial: Verstorbene aus Berufe-Liste entfernen + Fenster aktualisieren
+    local Memorial = GDL:GetModule("Memorial")
+    if Memorial then
+        Memorial:OnDeath(deathData)
+        if Memorial.frame and Memorial.frame:IsShown() then
+            Memorial:UpdateMemorialList()
+        end
+    end
+    
+    -- GuildStats aktualisieren wenn offen
+    local GuildStats = GDL:GetModule("GuildStats")
+    if GuildStats and GuildStats.frame and GuildStats.frame:IsShown() then
+        GuildStats:UpdateDeathsList()
+    end
+    
+    -- Professions aktualisieren wenn offen
+    local Professions = GDL:GetModule("Professions")
+    if Professions and Professions.frame and Professions.frame:IsShown() then
+        Professions:UpdateWindow()
+    end
+    
     -- Achievements triggern (v4.0)
     local Achievements = GDL:GetModule("Achievements")
     if Achievements then
@@ -508,5 +717,20 @@ function Sync:RecordLocalDeath(deathData)
         Export:AnnounceToChannel(deathData)
     end
 end
+
+-- ======================================================================
+-- MODULE INITIALIZATION
+-- ======================================================================
+
+local initFrame = CreateFrame("Frame")
+initFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+initFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_ENTERING_WORLD" then
+        C_Timer.After(1, function()
+            Sync:Initialize()
+        end)
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    end
+end)
 
 GDL:RegisterModule("Sync", Sync)

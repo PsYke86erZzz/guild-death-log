@@ -33,7 +33,7 @@ end
 function Debug:CreateWindow()
     local f = CreateFrame("Frame", "GDLDebugFrame", UIParent, "BasicFrameTemplateWithInset")
     f:SetSize(560, 480)
-    f:SetPoint("CENTER", 250, 0)
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, -350)  -- Unten-mitte (cascade)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(150)
     f:SetMovable(true)
@@ -199,14 +199,17 @@ function Debug:UpdateWindow()
     if not self.frame or not self.frame:IsShown() then return end
     local f = self.frame
     
-    -- Sync Info (nur Basis-Infos, keine User-Liste mehr)
+    -- Sync Info (mit eigener Version!)
     local Sync = GDL:GetModule("Sync")
     local syncText = ""
     local onlineUsers = {}
     
+    -- EIGENE VERSION anzeigen
+    syncText = "|cff00FF00v" .. GDL.version .. "|r\n"
+    
     if Sync then
         onlineUsers = Sync:GetOnlineUsers()
-        syncText = string.format(GDL:L("DEBUG_USERS"), #onlineUsers) .. "\n"
+        syncText = syncText .. string.format(GDL:L("DEBUG_USERS"), #onlineUsers) .. "\n"
         local lastSync = Sync:GetLastSyncTime()
         if lastSync > 0 then
             local ago = time() - lastSync

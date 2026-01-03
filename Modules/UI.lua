@@ -37,7 +37,7 @@ function UI:GetClassIcon(classId) return CLASS_ICONS[classId] or "Interface\\Ico
 function UI:CreateChronicle()
     -- Hauptframe mit Schatten-Effekt
     local f = CreateFrame("Frame", "GDLChronicle", UIParent, "BackdropTemplate")
-    f:SetSize(480, 600)
+    f:SetSize(500, 650)  -- Größer: 500x650
     f:SetPoint("CENTER")
     f:SetFrameStrata("HIGH")
     f:SetFrameLevel(100)
@@ -167,7 +167,7 @@ function UI:CreateChronicle()
     -- Scroll Container
     local scrollContainer = CreateFrame("Frame", nil, f, "BackdropTemplate")
     scrollContainer:SetPoint("TOPLEFT", 22, -195)
-    scrollContainer:SetPoint("BOTTOMRIGHT", -22, 70)
+    scrollContainer:SetPoint("BOTTOMRIGHT", -22, 100)  -- Mehr Platz für Buttons
     scrollContainer:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -197,53 +197,86 @@ function UI:CreateChronicle()
     
     -- ═══ FOOTER MIT ZITAT ═══
     local footerLine = f:CreateTexture(nil, "ARTWORK")
-    footerLine:SetPoint("BOTTOMLEFT", 30, 55)
-    footerLine:SetPoint("BOTTOMRIGHT", -30, 55)
+    footerLine:SetPoint("BOTTOMLEFT", 30, 95)
+    footerLine:SetPoint("BOTTOMRIGHT", -30, 95)
     footerLine:SetHeight(1)
     footerLine:SetColorTexture(0.4, 0.3, 0.2, 0.5)
     
     f.quote = f:CreateFontString(nil, "OVERLAY")
     f.quote:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    f.quote:SetPoint("BOTTOM", 0, 38)
-    f.quote:SetWidth(400)
+    f.quote:SetPoint("BOTTOM", 0, 78)
+    f.quote:SetWidth(420)
     f.quote:SetTextColor(0.45, 0.35, 0.25)
     f.quote:SetJustifyH("CENTER")
     
-    -- ═══ ELEGANTE BUTTONS - REIHE 1 ═══
-    local btnY = 32
-    f.btnRefresh = self:CreateElegantButton(f, "Aktualisieren", -175, btnY, function()
+    -- ═══════════════════════════════════════════════════════════════
+    -- BUTTONS - 3 Reihen à 5 Buttons, einheitlich 90px breit
+    -- ═══════════════════════════════════════════════════════════════
+    local btnWidth = 90
+    local btnSpacing = 4
+    local totalWidth = (btnWidth * 5) + (btnSpacing * 4)  -- 470px
+    local startX = -totalWidth / 2 + btnWidth / 2  -- Zentriert
+    
+    -- Reihe 1 (oben)
+    local btnY1 = 68
+    f.btnRefresh = self:CreateElegantButton(f, "Aktualisieren", startX + (btnWidth + btnSpacing) * 0, btnY1, function()
         local D = GDL:GetModule("Deathlog") if D then D:ScanData() end
         self:UpdateChronicle()
     end)
     
-    f.btnSettings = self:CreateElegantButton(f, "Einstellungen", -70, btnY, function()
+    f.btnSettings = self:CreateElegantButton(f, "Einstellungen", startX + (btnWidth + btnSpacing) * 1, btnY1, function()
         self:ShowSettings()
     end)
     
-    f.btnSync = self:CreateElegantButton(f, "Sync", 35, btnY, function()
+    f.btnSync = self:CreateElegantButton(f, "Sync", startX + (btnWidth + btnSpacing) * 2, btnY1, function()
         local S = GDL:GetModule("Sync") if S then S:RequestFullSync() end
     end)
     
-    f.btnDebug = self:CreateElegantButton(f, "Debug", 130, btnY, function()
+    f.btnExport = self:CreateElegantButton(f, "Export", startX + (btnWidth + btnSpacing) * 3, btnY1, function()
+        local E = GDL:GetModule("Export") if E then E:ShowExportWindow() end
+    end)
+    
+    f.btnDebug = self:CreateElegantButton(f, "Debug", startX + (btnWidth + btnSpacing) * 4, btnY1, function()
         local D = GDL:GetModule("Debug") if D then D:ShowWindow() end
     end)
     
-    -- ═══ ELEGANTE BUTTONS - REIHE 2 (v4.0) ═══
-    local btnY2 = 8
-    f.btnHallOfFame = self:CreateElegantButton(f, "Ruhmeshalle", -175, btnY2, function()
+    -- Reihe 2 (mitte)
+    local btnY2 = 42
+    f.btnHallOfFame = self:CreateElegantButton(f, "Ruhmeshalle", startX + (btnWidth + btnSpacing) * 0, btnY2, function()
         self:ShowHallOfFame()
     end)
     
-    f.btnStats = self:CreateElegantButton(f, "Statistiken", -70, btnY2, function()
+    f.btnStats = self:CreateElegantButton(f, "Statistiken", startX + (btnWidth + btnSpacing) * 1, btnY2, function()
         self:ShowStatistics()
     end)
     
-    f.btnAchievements = self:CreateElegantButton(f, "Meilensteine", 35, btnY2, function()
+    f.btnAchievements = self:CreateElegantButton(f, "Meilensteine", startX + (btnWidth + btnSpacing) * 2, btnY2, function()
         self:ShowAchievements()
     end)
     
-    f.btnExport = self:CreateElegantButton(f, "Export", 130, btnY2, function()
-        local E = GDL:GetModule("Export") if E then E:ShowExportWindow() end
+    f.btnProfessions = self:CreateElegantButton(f, "Berufe", startX + (btnWidth + btnSpacing) * 3, btnY2, function()
+        local P = GDL:GetModule("Professions") if P then P:ShowWindow() end
+    end)
+    
+    f.btnGuildMap = self:CreateElegantButton(f, "Gilden-Karte", startX + (btnWidth + btnSpacing) * 4, btnY2, function()
+        local GT = GDL:GetModule("GuildTracker") 
+        if GT then 
+            GT:Toggle()
+        end
+    end)
+    
+    -- Reihe 3 (unten) - Neue Features
+    local btnY3 = 20
+    f.btnTitles = self:CreateElegantButton(f, "Titel", startX + (btnWidth + btnSpacing) * 0, btnY3, function()
+        self:ToggleTitles()
+    end)
+    
+    f.btnMemorial = self:CreateElegantButton(f, "Gedenkhalle", startX + (btnWidth + btnSpacing) * 1, btnY3, function()
+        local M = GDL:GetModule("Memorial") if M then M:ShowMemorialWindow() end
+    end)
+    
+    f.btnGuildStats = self:CreateElegantButton(f, "Gilden-Stats", startX + (btnWidth + btnSpacing) * 2, btnY3, function()
+        local GS = GDL:GetModule("GuildStats") if GS then GS:ShowStatsWindow() end
     end)
     
     -- ═══ OPEN ANIMATION ═══
@@ -290,7 +323,7 @@ end
 
 function UI:CreateElegantButton(parent, text, x, y, onClick)
     local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    btn:SetSize(85, 24)
+    btn:SetSize(90, 22)  -- 90px breit, einheitlich
     btn:SetPoint("BOTTOM", x, y)
     
     btn:SetBackdrop({
@@ -303,7 +336,7 @@ function UI:CreateElegantButton(parent, text, x, y, onClick)
     btn:SetBackdropBorderColor(0.5, 0.4, 0.3, 0.8)
     
     local label = btn:CreateFontString(nil, "OVERLAY")
-    label:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    label:SetFont("Fonts\\FRIZQT__.TTF", 9, "")  -- Etwas kleiner für lange Texte
     label:SetPoint("CENTER", 0, 1)
     label:SetText(text)
     label:SetTextColor(0.9, 0.8, 0.6)
@@ -847,8 +880,8 @@ end
 
 function UI:CreateSettings()
     local s = CreateFrame("Frame", "GDLSettings", UIParent, "BackdropTemplate")
-    s:SetSize(300, 340)
-    s:SetPoint("CENTER", 150, 0)
+    s:SetSize(300, 370)  -- Etwas größer für neue Option
+    s:SetPoint("CENTER", UIParent, "CENTER", 500, 250)  -- Rechts-oben (cascade)
     s:SetFrameStrata("DIALOG")
     s:SetFrameLevel(110)
     s:SetMovable(true)
@@ -882,7 +915,8 @@ function UI:CreateSettings()
         {"Gildenchat-Ankuendigung", "announce"}, 
         {"Sound abspielen", "sound"}, 
         {"Todes-Popup anzeigen", "overlay"}, 
-        {"Karten-Markierungen", "mapMarkers"}, 
+        {"Karten-Markierungen (Tode)", "mapMarkers"}, 
+        {"Gilden-Karte (Live-Positionen)", "guildTracker"},
         {"Blizzard HC-Channel", "useBlizzardChannel"}, 
         {"Addon-Sync aktiv", "useAddonChannel"}, 
         {"Debug-Ausgaben", "debugPrint"}
@@ -1013,7 +1047,7 @@ function UI:CreateHallOfFameWindow()
     
     local f = CreateFrame("Frame", "GDLHallOfFame", UIParent, "BackdropTemplate")
     f:SetSize(450, 500)
-    f:SetPoint("CENTER", -200, 50)
+    f:SetPoint("CENTER", UIParent, "CENTER", 480, 100)  -- Rechts-oben (cascade)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(120)
     f:SetMovable(true)
@@ -1063,7 +1097,7 @@ end
 function UI:CreateStatisticsWindow()
     local f = CreateFrame("Frame", "GDLStatistics", UIParent, "BackdropTemplate")
     f:SetSize(420, 480)
-    f:SetPoint("CENTER", 200, -50)
+    f:SetPoint("CENTER", UIParent, "CENTER", 460, -50)  -- Rechts-mitte (cascade)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(130)
     f:SetMovable(true)
@@ -1336,7 +1370,7 @@ end
 function UI:CreateMilestonesWindow()
     local f = CreateFrame("Frame", "GDLMilestones", UIParent, "BackdropTemplate")
     f:SetSize(450, 550)
-    f:SetPoint("CENTER", 0, 20)
+    f:SetPoint("CENTER", UIParent, "CENTER", 440, -200)  -- Rechts-unten (cascade)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(140)
     f:SetMovable(true)
@@ -1363,27 +1397,30 @@ function UI:CreateMilestonesWindow()
     
     -- Charakter-Name Anzeige
     local charInfo = f:CreateFontString(nil, "OVERLAY")
-    charInfo:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    charInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     charInfo:SetPoint("TOP", title, "BOTTOM", 0, -5)
-    charInfo:SetTextColor(0.5, 0.5, 0.5)
+    charInfo:SetTextColor(0.2, 0.15, 0.1)  -- Dunkelbraun für bessere Lesbarkeit
     f.charInfo = charInfo
     
-    -- Kategorie-Buttons
+    -- Kategorie-Buttons - 5 Kategorien
     local categories = {
         {id = "level", name = "Level", icon = "Interface\\Icons\\Spell_Holy_WordFortitude"},
         {id = "dungeon", name = "Dungeons", icon = "Interface\\Icons\\INV_Misc_Key_04"},
         {id = "raid", name = "Raids", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01"},
         {id = "profession", name = "Berufe", icon = "Interface\\Icons\\Trade_BlackSmithing"},
+        {id = "kills", name = "Kills", icon = "Interface\\Icons\\Ability_DualWield"},
     }
     
     f.categoryButtons = {}
     f.selectedCategory = "level"
     
-    local btnX = -150
+    local btnWidth = 82
+    local totalWidth = #categories * btnWidth + (#categories - 1) * 5
+    local btnX = -totalWidth / 2
     for i, cat in ipairs(categories) do
         local btn = CreateFrame("Button", nil, f, "BackdropTemplate")
-        btn:SetSize(90, 30)
-        btn:SetPoint("TOP", 0 + btnX + (i-1)*100, -55)
+        btn:SetSize(btnWidth, 28)
+        btn:SetPoint("TOP", btnX + (i-1)*(btnWidth + 5) + btnWidth/2, -55)
         
         btn:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -1448,7 +1485,7 @@ function UI:UpdateMilestones()
     local charKey = Milestones:GetCharacterKey()
     local charName = UnitName("player")
     local unlocked, total = Milestones:GetMilestoneProgress(charKey)
-    f.charInfo:SetText(charName .. " - " .. unlocked .. "/" .. total .. " Meilensteine")
+    f.charInfo:SetText("|cffFFD100" .. charName .. "|r |cff3a2a10- " .. unlocked .. "/" .. total .. " Meilensteine|r")
     
     -- Button-Farben aktualisieren
     for catId, btn in pairs(f.categoryButtons) do
@@ -1472,16 +1509,17 @@ function UI:UpdateMilestones()
     -- Kategorie-Header
     local catUnlocked, catTotal = Milestones:GetCategoryProgress(category, charKey)
     local header = content:CreateFontString(nil, "OVERLAY")
-    header:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-    header:SetPoint("TOPLEFT", 0, y)
+    header:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
+    header:SetPoint("TOPLEFT", 5, y)
     
     local categoryNames = {
         level = "Level-Meilensteine",
         dungeon = "Dungeon-Bosse",
         raid = "Raid-Bosse",
-        profession = "Berufe"
+        profession = "Berufe",
+        kills = "Kill-Meilensteine"
     }
-    header:SetText("|cff3a2a20" .. (categoryNames[category] or category) .. " - " .. catUnlocked .. "/" .. catTotal .. "|r")
+    header:SetText("|cff1a0a00" .. (categoryNames[category] or category) .. "|r |cff806040- " .. catUnlocked .. "/" .. catTotal .. "|r")
     y = y - 25
     
     -- Sortiere nach Threshold
@@ -1493,8 +1531,14 @@ function UI:UpdateMilestones()
         local isUnlocked = charMilestones[m.id] ~= nil
         local unlockData = charMilestones[m.id]
         
+        -- Kill-Meilensteine brauchen mehr Platz für Progress-Leiste
+        local rowHeight = 55
+        if not isUnlocked and m.type == "kills" then
+            rowHeight = 68
+        end
+        
         local row = CreateFrame("Frame", nil, content, "BackdropTemplate")
-        row:SetSize(380, 55)
+        row:SetSize(380, rowHeight)
         row:SetPoint("TOPLEFT", 0, y)
         
         row:SetBackdrop({
@@ -1509,7 +1553,8 @@ function UI:UpdateMilestones()
             level = {0.2, 0.6, 0.2},
             dungeon = {0.4, 0.4, 0.8},
             raid = {0.8, 0.4, 0.2},
-            profession = {0.6, 0.5, 0.2}
+            profession = {0.6, 0.5, 0.2},
+            kills = {0.7, 0.2, 0.2}
         }
         local color = catColors[category] or {0.5, 0.5, 0.5}
         
@@ -1565,10 +1610,289 @@ function UI:UpdateMilestones()
             end
         end
         
-        y = y - 60
+        -- Fortschrittsbalken für Kill-Meilensteine (wenn nicht freigeschaltet)
+        if not isUnlocked and m.type == "kills" and m.creatureType and m.threshold then
+            local KillStats = GDL:GetModule("KillStats")
+            if KillStats then
+                local currentKills = KillStats:GetKillCount(m.creatureType)
+                local threshold = m.threshold
+                
+                -- Wenn Ziel erreicht aber noch nicht freigeschaltet: Jetzt freischalten!
+                if currentKills >= threshold then
+                    -- Meilenstein sollte freigeschaltet werden
+                    local charKey = Milestones:GetCharacterKey()
+                    local charName = UnitName("player")
+                    local level = UnitLevel("player")
+                    Milestones:UnlockMilestone(m.id, charKey, charName, level, true)
+                    
+                    -- Zeige als erreicht an
+                    row:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.8)
+                    row:SetBackdropBorderColor(color[1], color[2], color[3], 0.9)
+                    icon:SetDesaturated(false)
+                    icon:SetAlpha(1)
+                    name:SetText("|cff00FF00[+]|r " .. m.name)
+                    
+                    -- Datum anzeigen
+                    local dateText = row:CreateFontString(nil, "OVERLAY")
+                    dateText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+                    dateText:SetPoint("BOTTOMRIGHT", -10, 8)
+                    dateText:SetText("|cff00AA00" .. date("%d.%m.%Y") .. "|r")
+                else
+                    -- Progress noch nicht erreicht - zeige Balken
+                    local progress = currentKills / threshold
+                    
+                    -- Progress Bar Background - kompakt unter der Beschreibung
+                    local barBg = row:CreateTexture(nil, "ARTWORK")
+                    barBg:SetSize(120, 8)
+                    barBg:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -4)
+                    barBg:SetColorTexture(0.1, 0.08, 0.05, 0.9)
+                    
+                    -- Progress Bar Fill
+                    if progress > 0 then
+                        local barFill = row:CreateTexture(nil, "OVERLAY")
+                        barFill:SetSize(math.max(120 * progress, 1), 8)
+                        barFill:SetPoint("LEFT", barBg, "LEFT", 0, 0)
+                        barFill:SetColorTexture(color[1], color[2], color[3], 1)
+                    end
+                    
+                    -- Progress Text - rechts neben der Leiste
+                    local progressText = row:CreateFontString(nil, "OVERLAY")
+                    progressText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+                    progressText:SetPoint("LEFT", barBg, "RIGHT", 5, 0)
+                    progressText:SetText("|cffDDDDDD" .. currentKills .. "/" .. threshold .. "|r")
+                end
+            end
+        end
+        
+        y = y - (rowHeight + 5)  -- Dynamische Höhe + Abstand
     end
     
     content:SetHeight(math.abs(y) + 30)
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- TITLES WINDOW - Titel-Auswahl Fenster
+-- ══════════════════════════════════════════════════════════════
+
+function UI:ToggleTitles()
+    if not self.titlesFrame then
+        self:CreateTitlesWindow()
+    end
+    
+    if self.titlesFrame:IsShown() then
+        self.titlesFrame:Hide()
+    else
+        self.titlesFrame:Show()
+        self:UpdateTitles()
+    end
+end
+
+function UI:CreateTitlesWindow()
+    local f = CreateFrame("Frame", "GDLTitles", UIParent, "BackdropTemplate")
+    f:SetSize(420, 500)
+    f:SetPoint("CENTER", UIParent, "CENTER", 420, 200)  -- Rechts-ganz-oben (cascade)
+    f:SetFrameStrata("DIALOG")
+    f:SetFrameLevel(150)
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:SetScript("OnMouseDown", function(self) self:Raise() end)
+    
+    f:SetBackdrop({
+        bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
+        edgeSize = 26,
+        insets = {left = 5, right = 5, top = 5, bottom = 5}
+    })
+    
+    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -5, -5)
+    
+    -- Titel-Icon oben
+    local headerIcon = f:CreateTexture(nil, "ARTWORK")
+    headerIcon:SetSize(40, 40)
+    headerIcon:SetPoint("TOP", 0, -15)
+    headerIcon:SetTexture("Interface\\Icons\\INV_Crown_01")
+    
+    local title = f:CreateFontString(nil, "OVERLAY")
+    title:SetFont("Fonts\\MORPHEUS.TTF", 18, "")
+    title:SetPoint("TOP", headerIcon, "BOTTOM", 0, -5)
+    title:SetText("|cff1a0a00Titel / Titles|r")
+    
+    -- Aktueller Titel Anzeige
+    local currentFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    currentFrame:SetSize(380, 60)
+    currentFrame:SetPoint("TOP", title, "BOTTOM", 0, -15)
+    currentFrame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = {left = 3, right = 3, top = 3, bottom = 3}
+    })
+    currentFrame:SetBackdropColor(0.1, 0.08, 0.05, 0.9)
+    currentFrame:SetBackdropBorderColor(0.8, 0.6, 0.2, 1)
+    
+    local currentLabel = currentFrame:CreateFontString(nil, "OVERLAY")
+    currentLabel:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    currentLabel:SetPoint("TOPLEFT", 10, -8)
+    currentLabel:SetText("|cffAAAA00Aktueller Titel:|r")
+    
+    local currentTitle = currentFrame:CreateFontString(nil, "OVERLAY")
+    currentTitle:SetFont("Fonts\\MORPHEUS.TTF", 16, "")
+    currentTitle:SetPoint("LEFT", 50, -5)
+    f.currentTitleText = currentTitle
+    
+    local currentIcon = currentFrame:CreateTexture(nil, "ARTWORK")
+    currentIcon:SetSize(32, 32)
+    currentIcon:SetPoint("LEFT", 10, -5)
+    f.currentTitleIcon = currentIcon
+    
+    -- Progress-Anzeige
+    local progressText = f:CreateFontString(nil, "OVERLAY")
+    progressText:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    progressText:SetPoint("TOP", currentFrame, "BOTTOM", 0, -10)
+    f.progressText = progressText
+    
+    -- Info-Text
+    local infoText = f:CreateFontString(nil, "OVERLAY")
+    infoText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+    infoText:SetPoint("TOP", progressText, "BOTTOM", 0, -5)
+    infoText:SetText("|cff888888Titel sind für alle Gildenmitglieder mit dem Addon sichtbar!|r")
+    
+    -- Scroll-Bereich für Titel-Liste
+    local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 15, -175)
+    scroll:SetPoint("BOTTOMRIGHT", -35, 15)
+    
+    local child = CreateFrame("Frame", nil, scroll)
+    child:SetSize(scroll:GetWidth(), 600)
+    scroll:SetScrollChild(child)
+    f.contentFrame = child
+    
+    f:Hide()
+    self.titlesFrame = f
+end
+
+function UI:UpdateTitles()
+    local Titles = GDL:GetModule("Titles")
+    if not Titles or not self.titlesFrame then return end
+    
+    local f = self.titlesFrame
+    local content = f.contentFrame
+    
+    -- Content leeren
+    for _, child in ipairs({content:GetChildren()}) do
+        child:Hide()
+        child:SetParent(nil)
+    end
+    
+    -- Aktueller Titel
+    local selected = Titles:GetSelectedTitle()
+    if selected then
+        local color = selected.color or {1, 1, 1}
+        f.currentTitleText:SetText(string.format("|cff%02x%02x%02x<%s>|r", 
+            color[1]*255, color[2]*255, color[3]*255, selected.name))
+        f.currentTitleIcon:SetTexture(selected.icon)
+    end
+    
+    -- Progress
+    local unlocked, total = Titles:GetStats()
+    f.progressText:SetText("|cffFFD100" .. unlocked .. "|r / |cff888888" .. total .. " Titel freigeschaltet|r")
+    
+    -- Titel-Liste
+    local allTitles = Titles:GetUnlockedTitles()
+    local y = 0
+    
+    for _, t in ipairs(allTitles) do
+        local isSelected = selected and selected.id == t.id
+        
+        local row = CreateFrame("Button", nil, content, "BackdropTemplate")
+        row:SetSize(350, 55)
+        row:SetPoint("TOPLEFT", 0, y)
+        
+        row:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 10,
+            insets = {left = 2, right = 2, top = 2, bottom = 2}
+        })
+        
+        local color = t.color or {0.5, 0.5, 0.5}
+        
+        if isSelected then
+            row:SetBackdropColor(color[1] * 0.4, color[2] * 0.4, color[3] * 0.4, 0.9)
+            row:SetBackdropBorderColor(0, 1, 0, 1)  -- Grüner Rahmen
+        else
+            row:SetBackdropColor(0.1, 0.08, 0.05, 0.7)
+            row:SetBackdropBorderColor(color[1] * 0.6, color[2] * 0.6, color[3] * 0.6, 0.8)
+        end
+        
+        -- Icon
+        local icon = row:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(40, 40)
+        icon:SetPoint("LEFT", 8, 0)
+        icon:SetTexture(t.icon)
+        
+        -- Titel-Name
+        local nameText = row:CreateFontString(nil, "OVERLAY")
+        nameText:SetFont("Fonts\\MORPHEUS.TTF", 14, "")
+        nameText:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -5)
+        nameText:SetText(string.format("|cff%02x%02x%02x<%s>|r", 
+            color[1]*255, color[2]*255, color[3]*255, t.name))
+        
+        -- Beschreibung
+        local descText = row:CreateFontString(nil, "OVERLAY")
+        descText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
+        descText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -3)
+        descText:SetText("|cff888888" .. t.desc .. "|r")
+        
+        -- Aktiv-Marker
+        if isSelected then
+            local marker = row:CreateFontString(nil, "OVERLAY")
+            marker:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+            marker:SetPoint("RIGHT", -10, 0)
+            marker:SetText("|cff00FF00< AKTIV|r")
+        end
+        
+        -- Hover-Effekte
+        row:SetScript("OnEnter", function(self)
+            if not isSelected then
+                self:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.9)
+            end
+            
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine(t.name, color[1], color[2], color[3])
+            GameTooltip:AddLine(t.desc, 1, 1, 1, true)
+            GameTooltip:AddLine(" ")
+            if t.requirement then
+                GameTooltip:AddLine("Benötigt: " .. t.requirement, 0.7, 0.7, 0.7)
+            end
+            GameTooltip:AddLine("Priorität: " .. (t.priority or 0), 0.5, 0.5, 0.5)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("Klicken zum Auswählen", 0, 1, 0)
+            GameTooltip:Show()
+        end)
+        
+        row:SetScript("OnLeave", function(self)
+            if not isSelected then
+                self:SetBackdropColor(0.1, 0.08, 0.05, 0.7)
+            end
+            GameTooltip:Hide()
+        end)
+        
+        -- Klick zum Auswählen
+        row:SetScript("OnClick", function()
+            Titles:SetSelectedTitle(t.id)
+            self:UpdateTitles()
+        end)
+        
+        y = y - 60
+    end
+    
+    content:SetHeight(math.abs(y) + 20)
 end
 
 GDL:RegisterModule("UI", UI)

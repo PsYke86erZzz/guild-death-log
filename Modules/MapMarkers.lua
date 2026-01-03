@@ -1,7 +1,7 @@
--- ══════════════════════════════════════════════════════════════
+-- ============================================================══
 -- MODUL: MapMarkers - Todesmarker auf der Weltkarte
 -- Classic Era kompatibel
--- ══════════════════════════════════════════════════════════════
+-- ============================================================══
 
 local addonName, addon = ...
 local GDL = _G["GuildDeathLog"]
@@ -163,33 +163,25 @@ end
 function MapMarkers:CreatePin(parent)
     -- WICHTIG: Button statt Frame für OnClick Support!
     local pin = CreateFrame("Button", nil, parent)
-    pin:SetSize(24, 24)
+    pin:SetSize(18, 18)  -- Kleiner: 18x18 statt 24x24
     pin:SetFrameStrata("HIGH")
     pin:SetFrameLevel(100)
     
-    -- Hintergrund-Glow (rötlich für Tod)
+    -- Hintergrund-Glow (rötlich für Tod, kleiner)
     local glow = pin:CreateTexture(nil, "BACKGROUND")
     glow:SetTexture("Interface\\Cooldown\\star4")
     glow:SetBlendMode("ADD")
-    glow:SetSize(32, 32)
+    glow:SetSize(24, 24)  -- Kleiner
     glow:SetPoint("CENTER")
-    glow:SetAlpha(0.5)
-    glow:SetVertexColor(0.8, 0.2, 0.2, 1)
+    glow:SetAlpha(0.4)
+    glow:SetVertexColor(0.7, 0.1, 0.1, 1)
     pin.glow = glow
     
-    -- Grabstein/Totenkopf Icon
-    -- Verfügbare Classic Icons:
-    -- "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" = Totenkopf
-    -- "Interface\\MINIMAP\\POIIcons" = verschiedene POI Marker  
-    -- "Interface\\WorldMap\\Skull_64Grey" = grauer Schädel
-    -- "Interface\\Buttons\\UI-GroupLoot-Coin-Up" = Münze
+    -- Totenkopf-Icon (💀)
     local icon = pin:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(20, 20)
+    icon:SetSize(16, 16)  -- Kleiner
     icon:SetPoint("CENTER")
-    -- Totenkopf-Icon (gut sichtbar auf der Karte)
     icon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")
-    -- Leicht gräulich für "tot" Look
-    icon:SetVertexColor(0.9, 0.85, 0.8)
     pin.icon = icon
     
     -- Interaktiv
@@ -286,6 +278,43 @@ function MapMarkers:GetMarkerCount()
     end
     
     return total, withCoords
+end
+
+-- Debug-Info über Koordinaten
+function MapMarkers:PrintCoordDebug()
+    local guildData = GDL:GetGuildData()
+    if not guildData then 
+        GDL:Print("|cffFF6666Keine Gildendaten gefunden!|r")
+        return 
+    end
+    
+    local total, withCoords = self:GetMarkerCount()
+    
+    GDL:Print("=== Karten-Marker Debug ===")
+    GDL:Print(string.format("Tode gesamt: %d", total))
+    GDL:Print(string.format("Mit Koordinaten: |cff00FF00%d|r (%.0f%%)", withCoords, total > 0 and (withCoords/total*100) or 0))
+    GDL:Print(string.format("Ohne Koordinaten: |cffFF6666%d|r", total - withCoords))
+    GDL:Print(" ")
+    
+    if total - withCoords > 0 then
+        GDL:Print("|cffFFFF00Hinweis:|r Koordinaten werden nur erfasst wenn:")
+        GDL:Print("- Der sterbende Spieler dieses Addon hat")
+        GDL:Print("- ODER das Deathlog-Addon Koordinaten liefert")
+        GDL:Print(" ")
+    end
+    
+    -- Zeige die letzten 5 Tode mit/ohne Koordinaten
+    local count = 0
+    for i = #(guildData.deaths or {}), 1, -1 do
+        if count >= 5 then break end
+        local d = guildData.deaths[i]
+        local hasCoords = d.posX and d.posX > 0 and d.posY and d.posY > 0
+        local coordStr = hasCoords 
+            and string.format("|cff00FF00%.1f, %.1f|r", (d.posX or 0)*100, (d.posY or 0)*100)
+            or "|cffFF6666keine|r"
+        GDL:Print(string.format("  %s - Coords: %s", d.name or "?", coordStr))
+        count = count + 1
+    end
 end
 
 GDL:RegisterModule("MapMarkers", MapMarkers)
