@@ -372,7 +372,7 @@ SlashCmdList["GDL"] = function(msg)
         else
             GDL:Print("|cffFF0000GuildTracker-Modul nicht geladen!|r")
         end
-    elseif msg == "trackstatus" or msg == "mapstatus" then
+    elseif msg == "trackstatus" or msg == "mapstatus" or msg == "trackerstatus" then
         local GuildTracker = GDL:GetModule("GuildTracker")
         if GuildTracker then
             GuildTracker:PrintStatus()
@@ -388,7 +388,9 @@ SlashCmdList["GDL"] = function(msg)
             else
                 GDL:Print("|cff00AAFF" .. #players .. " Gildenmitglieder mit Addon:|r")
                 for _, p in ipairs(players) do
-                    GDL:Print("  - " .. p.name .. " (vor " .. p.lastSeen .. "s)")
+                    local lvl = p.level and p.level > 0 and (" Lv" .. p.level) or ""
+                    local status = p.lastSeen < 5 and "|cff00FF00LIVE|r" or ("|cffFFFF00" .. p.lastSeen .. "s|r")
+                    GDL:Print("  - " .. p.name .. lvl .. " (" .. status .. ")")
                 end
             end
         end
@@ -434,6 +436,22 @@ SlashCmdList["GDL"] = function(msg)
             end
         else
             GDL:Print("Verwendung: /gdl find <beruf>")
+        end
+    elseif msg == "msgtest" or msg == "condtest" then
+        -- Test: Zeige 10 zufällige Todesnachrichten
+        local Condolences = GDL:GetModule("Condolences")
+        if Condolences then
+            Condolences:TestMessages(10)
+        else
+            GDL:Print("|cffFF0000Condolences-Modul nicht geladen!|r")
+        end
+    elseif msg == "msgstats" or msg == "condstats" then
+        -- Zeige Statistiken des Nachrichten-Systems
+        local Condolences = GDL:GetModule("Condolences")
+        if Condolences then
+            Condolences:PrintStats()
+        else
+            GDL:Print("|cffFF0000Condolences-Modul nicht geladen!|r")
         end
     else
         GDL:Print("Unbekannter Befehl. /gdl help für Hilfe")

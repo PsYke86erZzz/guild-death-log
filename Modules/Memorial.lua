@@ -170,7 +170,7 @@ end
 function Memorial:CreateMemorialWindow()
     local f = CreateFrame("Frame", "GDLMemorialFrame", UIParent, "BackdropTemplate")
     f:SetSize(450, 500)
-    f:SetPoint("CENTER", UIParent, "CENTER", -480, 200)  -- Links-oben (cascade)
+    f:SetPoint("CENTER", UIParent, "CENTER", -550, 150)  -- Links-oben (cascade)
     f:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",

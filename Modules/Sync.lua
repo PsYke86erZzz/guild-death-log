@@ -698,11 +698,22 @@ function Sync:RecordLocalDeath(deathData)
     local UI = GDL:GetModule("UI")
     if UI and UI.mainFrame and UI.mainFrame:IsShown() then UI:UpdateChronicle() end
     
-    -- Gildenchat Ankündigung mit Condolences (v4.0)
+    -- Gildenchat Ankündigung mit EPISCHEN Condolences (v4.8)
     if GuildDeathLogDB.settings.announce and IsInGuild() then
         local Condolences = GDL:GetModule("Condolences")
         if Condolences then
-            local msg = Condolences:GetDeathAnnouncement(deathData.name, deathData.level or 0, GDL:GetClassName(deathData.classId))
+            -- Killer extrahieren (kann "Environment", Mob-Name, etc. sein)
+            local killer = deathData.killer or deathData.source or nil
+            local zone = deathData.zone or nil
+            local className = GDL:GetClassName(deathData.classId)
+            
+            local msg = Condolences:GetDeathAnnouncement(
+                deathData.name, 
+                deathData.level or 0, 
+                className,
+                killer,
+                zone
+            )
             SendChatMessage(msg, "GUILD")
         else
             local L = GDL:GetModule("Locale").L

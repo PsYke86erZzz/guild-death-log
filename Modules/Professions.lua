@@ -395,7 +395,7 @@ end
 function Professions:CreateWindow()
     local f = CreateFrame("Frame", "GDLProfessionsFrame", UIParent, "BackdropTemplate")
     f:SetSize(480, 520)  -- Passend für 5 Buttons à 88px
-    f:SetPoint("CENTER", UIParent, "CENTER", -460, -200)  -- Links-unten (cascade)
+    f:SetPoint("CENTER", UIParent, "CENTER", -530, -150)  -- Links-unten (cascade)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(120)
     f:SetMovable(true)

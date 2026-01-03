@@ -156,7 +156,7 @@ end
 function GuildStats:CreateStatsWindow()
     local f = CreateFrame("Frame", "GDLGuildStatsFrame", UIParent, "BackdropTemplate")
     f:SetSize(500, 550)
-    f:SetPoint("CENTER", UIParent, "CENTER", 400, -100)  -- Rechts-unten (cascade)
+    f:SetPoint("CENTER", UIParent, "CENTER", 540, -150)  -- Rechts diagonal (cascade)
     f:SetBackdrop({
         bgFile = "Interface\\ACHIEVEMENTFRAME\\UI-Achievement-Parchment-Horizontal",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
