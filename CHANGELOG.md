@@ -1,11 +1,287 @@
 # Das Buch der Gefallenen - Changelog
 
+## Version 4.9.8 - HEUTE-ZÄHLER FIX
+**Hauptfenster und Debug zeigen jetzt die gleiche Anzahl**
+
+---
+
+### Bug behoben: "Heute" Zähler
+
+**Problem:**
+- Debug-Fenster zeigte "3 heute"
+- Hauptfenster zeigte "0 Heute"
+- Beide sollten identisch sein!
+
+**Ursache:**
+- UI.lua verwendete UTC-Zeit: `time() - (time() % 86400)`
+- Debug.lua verwendete lokale Zeit: `date("*t")` + `time({...})`
+- Bei Zeitzone CET (UTC+1) führte das zu 1 Stunde Unterschied
+
+**Fix:**
+- UI.lua verwendet jetzt auch lokale Zeitzone
+- Beide Fenster zeigen jetzt die gleiche Anzahl "Tode heute"
+
+---
+
+## Version 4.9.7 - TALENT-SPEC FIX
+**Spezialisierung aktualisiert sich jetzt korrekt**
+
+---
+
+### Professions-Modul verbessert
+
+**Neue Events für Talent-Aktualisierung:**
+- `CHARACTER_POINTS_CHANGED` - Classic: Wenn Talentpunkte verteilt werden
+- `PLAYER_TALENT_UPDATE` - Retail/WOTLK: Wenn Talente geändert werden
+- `PLAYER_LEVEL_UP` - Bei Level-Up werden Infos neu gesendet
+
+**Aktualisierungs-Zeiten:**
+- Bei Berufsskill-Änderung: nach 2 Sekunden
+- Bei Talent-Änderung: nach 1 Sekunde
+- Bei Level-Up: nach 3 Sekunden
+- Automatisch: alle 60 Sekunden
+
+**Die Spezialisierung wird jetzt angezeigt für:**
+- Alle Spieler ab Level 10 die Talentpunkte verteilt haben
+- Aktualisiert sich automatisch wenn Talente geändert werden
+- Zeigt den Talentbaum mit den meisten Punkten
+
+---
+
+## Version 4.9.6 - HOTFIX
+**Debug-Fenster Anchor-Fix**
+
+---
+
+### Bug behoben
+
+- **SetPoint Anchor Error** in Debug.lua Zeile 218 behoben
+- `serverBox` Referenz zu `deathStatsBox` korrigiert
+- Debug-Fenster oeffnet sich jetzt ohne Fehler
+
+---
+
+## Version 4.9.5 - FINALE VERSION
+**STABIL, GETESTET, GILDEN-INTERN**
+
+---
+
+### ALLE SYSTEME VALIDIERT
+
+Diese Version wurde gruendlich geprueft und alle Funktionen funktionieren wie geplant:
+
+**13 Buttons - Alle funktionsfaehig:**
+| Button | Funktion |
+|--------|----------|
+| Aktualisieren | Deathlog scannen + UI aktualisieren |
+| Einstellungen | Einstellungsfenster oeffnen |
+| Sync | Gilden-Sync anfordern |
+| Export | Export-Fenster oeffnen |
+| Debug | Debug-Fenster oeffnen |
+| Ruhmeshalle | Hall of Fame anzeigen |
+| Statistiken | Statistik-Fenster oeffnen |
+| Meilensteine | Meilenstein-Fenster oeffnen |
+| Berufe | Berufe-Fenster oeffnen |
+| Gilden-Karte | Live-Tracker togglen |
+| Titel | Titel-Fenster oeffnen |
+| Gedenkhalle | Memorial-Fenster oeffnen |
+| Gilden-Stats | Gilden-Statistiken anzeigen |
+
+### Debug-Fenster verbessert
+
+**6 Info-Boxen (neu organisiert):**
+1. **Sync Status** - Version, Online Users, letzter Sync
+2. **Online** - Liste der Gildenmitglieder mit Addon
+3. **Deathlog** - Deathlog Addon Status, Eintraege
+4. **Tode-Stats** - Gesamttode, Tode heute, letzter Tod (NEU!)
+5. **Live-Tracker** - Tracker Status, Spieler auf Karte
+6. **Addon Info** - Module, Speicher, Events
+
+*Die redundante "Gilden-Sync" Box wurde durch "Tode-Stats" ersetzt.*
+
+### Condolences v2.0 - Epische Todesnachrichten
+
+**~125,000+ einzigartige Kombinationen:**
+- 49 INTROS (epische Einleitungen)
+- 48 CORES (Kernaussagen)
+- 51 OUTROS (wuerdevolle Abschluesse)
+- 51 SPECIALS (eigenstaendige Nachrichten)
+- 45 Klassen-spezifische (9 Klassen × 5)
+- 17 Level-basierte (4 Kategorien)
+
+**Nur wuerdevolle, epische Nachrichten - keine Witze!**
+
+### Gilden-interne Kommunikation
+
+| Prefix | Modul | Funktion |
+|--------|-------|----------|
+| GDLSync | Sync | Todesfaelle syncen |
+| GDLTrack | GuildTracker | Live-Positionen |
+| GDLMile | Milestones | Meilensteine |
+| GDLProf | Professions | Berufe |
+| GDLTitle | Titles | Titel |
+
+**Alles bleibt in der Gilde - keine Server-weite Kommunikation!**
+
+### Bug-Fixes aus vorherigen Versionen
+
+- Guild.lua: PLAYER_ENTERING_WORLD Event fuer korrektes Member-Loading
+- GuildRoster() wird beim Login aufgerufen
+- IsMember() laedt Members neu wenn leer
+- Keine redundanten Debug-Boxen mehr
+
+---
+
+## Version 4.8.4
+**VEREINFACHUNG: NUR GILDEN-INTERN**
+
+---
+
+### Server-weiten Counter ENTFERNT
+
+Das Addon kommuniziert jetzt **NUR noch innerhalb der Gilde**:
+- Kein Public Channel mehr
+- Kein Server-weiter Counter
+- Alles bleibt Gilden-intern wie gewuenscht
+
+### Alle Kommunikation ist jetzt GILDEN-INTERN:
+
+| System | Channel | Reichweite |
+|--------|---------|------------|
+| **Todes-Sync** | GUILD Messages | Nur Gilde |
+| **Live-Tracker** | GUILD Messages | Nur Gilde |
+| **Meilensteine** | GUILD Messages | Nur Gilde |
+| **Berufe** | GUILD Messages | Nur Gilde |
+| **PING/PONG** | GUILD Messages | Nur Gilde |
+
+Fremde Gilden oder andere Spieler sehen **NICHTS** von euren Daten!
+
+### Debug-Fenster angepasst
+
+- "Server Users" Box umbenannt zu "Gilden-Sync"
+- Zeigt jetzt: Mitglieder mit Addon online + Gesamtzahl Gildenmitglieder
+- Kein externer Counter mehr
+
+### Guild.lua Fix (aus v4.8.2)
+
+- `PLAYER_ENTERING_WORLD` Event hinzugefuegt
+- `GuildRoster()` wird beim Login aufgerufen
+- `IsMember()` funktioniert jetzt korrekt
+- Tode von Gildenmitgliedern werden erkannt
+
+---
+
+## Version 4.8.2
+**SERVER USER COUNTER FIX + TOD-ERKENNUNG DEBUG**
+
+---
+
+### Server User Counter - DUAL MODE
+
+Der Counter nutzt jetzt ZWEI Methoden gleichzeitig fuer maximale Kompatibilitaet:
+
+**Methode 1: Public Channel (server-weit)**
+- Channel: `GuildDeathLogCount`
+- Messages: `GDL_COUNT_PING` / `GDL_COUNT_PONG`
+- Fuer: v4.8.2+ User (auch aus anderen Gilden!)
+
+**Methode 2: GUILD Messages (backward compatible)**
+- Prefix: `GDLCnt`
+- Messages: `CPING` / `CPONG` (und andere Varianten)
+- Fuer: v4.8.0 und v4.8.1 User
+
+Damit werden jetzt ALLE Addon-User gezaehlt, egal welche Version sie haben!
+
+### Tod-Erkennung - Verbessertes Debugging
+
+Bei Problemen mit der Tod-Erkennung zeigt `/gdl debug` jetzt genau:
+- Warum ein Tod ignoriert wurde
+- Ob der Blizzard HC-Channel aktiv ist
+- Ob ein Spieler als Gildenmitglied erkannt wurde
+
+### Systeme-Uebersicht
+
+| System | Channel | Reichweite |
+|--------|---------|------------|
+| Gilden-Sync | GUILD Messages | Nur Gilde |
+| Live-Tracker | GUILD Messages | Nur Gilde |
+| Meilensteine | GUILD Messages | Nur Gilde |
+| Berufe | GUILD Messages | Nur Gilde |
+| Server Counter | PUBLIC + GUILD | Server-weit + Gilde |
+
+---
+
+## Version 4.8.1
+**MAP-PINS FIX + SERVER USER COUNTER + KILLSTATS BUGFIX**
+
+---
+
+### WICHTIG: KillStats Bugfix!
+
+**Problem:** Kills wurden gezaehlt wenn man nur in der Naehe war (mouseover, target, nameplate) und jemand ANDERES den Mob getoetet hat.
+
+**Loesung:** 
+- Neues Flag `damagedByPlayer` im Cache
+- Wird NUR gesetzt wenn DU oder dein PET Schaden macht
+- `UNIT_DIED` zaehlt jetzt nur wenn `damagedByPlayer=true`
+- Pet-Kills werden korrekt mitgezaehlt
+
+**Resultat:** NUR deine eigenen Kills zaehlen fuer Meilensteine!
+
+### Debug-Fenster komplett neu!
+
+6 gleichgrosse Info-Boxen in 2 Zeilen:
+
+**Zeile 1:** Sync Status | Online | Deathlog Status
+**Zeile 2:** Server Users | Live-Tracker | Addon Info
+
+- Server Users werden automatisch beim Oeffnen gezaehlt
+- Live-Tracker zeigt Status + Spieler auf Karte
+- Addon Info zeigt Memory, Module-Anzahl, Uptime
+- Module-Anzahl wird jetzt korrekt gezaehlt (kein "?" mehr)
+
+### Karten-Pins komplett ueberarbeitet!
+
+**Vorher:** Grosses Icon mit haesslichem schwarzen Kasten
+**Jetzt:** Kleines, sauberes 16x16 Klassenicon mit dezenten Glow
+
+- Kein schwarzer Border mehr
+- Klassenicon in Originalfarben
+- Dezenter pulsierender Glow in Klassenfarbe
+- Wird groesser bei Hover (20x20)
+
+### Tooltip-Fix
+
+- Unicode-Symbole entfernt (WoW Classic Kompatibilitaet)
+- Klare Textanzeige: "LIVE", "vor 7s" etc.
+- Farbcodierung: Gruen=Live, Gelb=Kuerzlich, Orange=Aelter
+
+### Server Addon-User im Status integriert!
+
+`/gdl users` oder `/gdl trackerstatus` zeigt jetzt:
+
+```
+===========================================
+GuildTracker v2.1 Status
+===========================================
+Gilde Live: 3 Spieler
+Server Addon-User: (wird gezaehlt...)
+-------------------------------------------
+  Beatevonuse Lv42 - Stormwind [LIVE]
+===========================================
+Server Addon-User: 47
+```
+
+Die Server-Zaehlung laeuft automatisch nach 3 Sekunden.
+
+---
+
 ## Version 4.8.0
 **GUILDTRACKER v2.0 + EPISCHE TODESNACHRICHTEN!**
 
 ---
 
-### 💀 NEU: Condolences v2.0 - EPISCHE Todesnachrichten!
+### Condolences v2.0 - EPISCHE Todesnachrichten!
 
 **Modulares Nachrichten-System:**
 Nachrichten werden dynamisch aus würdevollen Bausteinen zusammengesetzt.

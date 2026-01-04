@@ -1,6 +1,14 @@
 -- ══════════════════════════════════════════════════════════════
 -- MODUL: Sync - Gilden-Synchronisation
 -- ══════════════════════════════════════════════════════════════
+-- Dieses Modul synct NUR zwischen GILDENMITGLIEDERN!
+-- Nutzt GUILD Addon Messages (NICHT server-weit)
+-- 
+-- Alle Kommunikation ist GILDEN-INTERN:
+-- - Todesfaelle
+-- - PING/PONG fuer Online-Status
+-- - Sync-Requests fuer historische Daten
+-- ══════════════════════════════════════════════════════════════
 
 local addonName, addon = ...
 local GDL = _G["GuildDeathLog"]
@@ -178,14 +186,35 @@ function Sync:HandleAddonMessage(message, sender)
 end
 
 function Sync:HandleBlizzardDeath(message, sender)
-    if not GuildDeathLogDB.settings.useBlizzardChannel then return end
+    GDL:Debug("HC-Channel Nachricht: " .. (message or "nil"):sub(1, 80))
+    
+    if not GuildDeathLogDB.settings.useBlizzardChannel then 
+        GDL:Debug("HC-Channel: useBlizzardChannel ist DEAKTIVIERT!")
+        return 
+    end
+    
     local name = message:match("%[(.-)%]")
     local level = message:match("level (%d+)")
-    if not name then return end
+    
+    if not name then 
+        GDL:Debug("HC-Channel: Kein Name gefunden in Nachricht")
+        return 
+    end
+    
+    GDL:Debug("HC-Channel: Name=" .. name .. ", Level=" .. (level or "?"))
     
     local Guild = GDL:GetModule("Guild")
-    if not Guild or not Guild:IsMember(name) then return end
+    if not Guild then
+        GDL:Debug("HC-Channel: Guild-Modul nicht geladen!")
+        return
+    end
     
+    if not Guild:IsMember(name) then 
+        GDL:Debug("HC-Channel: " .. name .. " ist KEIN Gildenmitglied")
+        return 
+    end
+    
+    GDL:Debug("HC-Channel: " .. name .. " ist Gildenmitglied - verarbeite Tod!")
     self:ProcessIncomingDeath({name=name, level=tonumber(level) or 0, timestamp=time(), fromBlizzard=true}, "Blizzard")
 end
 

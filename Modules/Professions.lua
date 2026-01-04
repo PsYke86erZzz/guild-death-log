@@ -33,6 +33,9 @@ function Professions:Initialize()
     self.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     self.eventFrame:RegisterEvent("SKILL_LINES_CHANGED")
     self.eventFrame:RegisterEvent("TRADE_SKILL_UPDATE")
+    self.eventFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")  -- Classic: Talent-Punkte verteilt
+    self.eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")      -- Retail/WOTLK: Talente geändert
+    self.eventFrame:RegisterEvent("PLAYER_LEVEL_UP")           -- Level-Up = neue Talente möglich
     self.eventFrame:SetScript("OnEvent", function(_, event, ...) self:OnEvent(event, ...) end)
     
     -- Berufe regelmäßig broadcasten
@@ -74,6 +77,20 @@ function Professions:OnEvent(event, ...)
     elseif event == "SKILL_LINES_CHANGED" or event == "TRADE_SKILL_UPDATE" then
         -- Bei Skill-Änderung neu broadcasten
         C_Timer.After(2, function()
+            if IsInGuild() then
+                self:BroadcastProfessions()
+            end
+        end)
+    elseif event == "CHARACTER_POINTS_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
+        -- Bei Talent-Änderung neu broadcasten (Spec könnte sich geändert haben)
+        C_Timer.After(1, function()
+            if IsInGuild() then
+                self:BroadcastProfessions()
+            end
+        end)
+    elseif event == "PLAYER_LEVEL_UP" then
+        -- Bei Level-Up neu broadcasten
+        C_Timer.After(3, function()
             if IsInGuild() then
                 self:BroadcastProfessions()
             end

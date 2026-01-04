@@ -405,12 +405,16 @@ function UI:UpdateChronicle()
     
     -- Statistiken berechnen
     local count, levelSum, today, thisWeek = #sortedDeaths, 0, 0, 0
-    local now, todayStart = time(), time() - (time() % 86400)
+    
+    -- LOKALE Zeitzone für "heute" verwenden (nicht UTC!)
+    local nowDate = date("*t")
+    local todayStart = time({year=nowDate.year, month=nowDate.month, day=nowDate.day, hour=0, min=0, sec=0})
+    local weekStart = todayStart - (7 * 86400)  -- 7 Tage zurück
     
     for _, d in ipairs(sortedDeaths) do
         levelSum = levelSum + (d.level or 0)
         if (d.timestamp or 0) >= todayStart then today = today + 1 end
-        if (d.timestamp or 0) >= todayStart - 604800 then thisWeek = thisWeek + 1 end
+        if (d.timestamp or 0) >= weekStart then thisWeek = thisWeek + 1 end
     end
     
     f.statTotal.value:SetText(count)

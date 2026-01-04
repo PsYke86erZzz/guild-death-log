@@ -13,7 +13,7 @@ addon.GDL = GDL
 _G["GuildDeathLog"] = GDL
 _G["GuildDeathLogDB"] = _G["GuildDeathLogDB"] or {}
 
-GDL.version = "4.7.0"
+GDL.version = "4.9.8"
 GDL.addonName = addonName
 GDL.modules = {}
 GDL.currentGuildName = nil
@@ -136,7 +136,7 @@ function GDL:InitDB()
     GuildDeathLogDB.adminPassword = GuildDeathLogDB.adminPassword or nil -- Gildenleiter-Passwort
     
     -- Version Check fuer Migration
-    local currentVersion = "4.4.1"
+    local currentVersion = "4.9.8"
     local savedVersion = GuildDeathLogDB.addonVersion or "0"
     
     -- WICHTIG: Bei Update alle Settings auf AN setzen!
@@ -393,6 +393,14 @@ SlashCmdList["GDL"] = function(msg)
                     GDL:Print("  - " .. p.name .. lvl .. " (" .. status .. ")")
                 end
             end
+        end
+    elseif msg == "users" or msg == "nutzer" or msg == "count" then
+        -- Zeigt Status inkl. Server-User-Count
+        local GuildTracker = GDL:GetModule("GuildTracker")
+        if GuildTracker then
+            GuildTracker:PrintStatus()
+        else
+            GDL:Print("|cffFF0000GuildTracker-Modul nicht geladen!|r")
         end
     elseif msg == "prof" or msg == "professions" or msg == "berufe" then
         local Professions = GDL:GetModule("Professions")

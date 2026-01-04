@@ -41,10 +41,20 @@ function Deathlog:SetupHooks()
 end
 
 function Deathlog:OnDeathNotification(playerData, inGuild)
-    if not playerData or not playerData.name or not GDL.currentGuildName then return end
+    GDL:Debug("DeathNotification erhalten: " .. (playerData and playerData.name or "nil"))
+    
+    if not playerData or not playerData.name or not GDL.currentGuildName then 
+        GDL:Debug("DeathNotification: Daten unvollstaendig")
+        return 
+    end
     
     local isGuildDeath = inGuild or (playerData.guild and playerData.guild == GDL.currentGuildName)
-    if not isGuildDeath then return end
+    if not isGuildDeath then 
+        GDL:Debug("DeathNotification: " .. playerData.name .. " nicht in unserer Gilde")
+        return 
+    end
+    
+    GDL:Debug("DeathNotification: " .. playerData.name .. " ist Gildenmitglied!")
     
     -- Koordinaten extrahieren (Vector2D hat .x und .y ODER [1] und [2])
     local posX, posY = 0, 0

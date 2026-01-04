@@ -162,8 +162,7 @@ function GuildTracker:Initialize()
         end
     end)
     
-    GDL:Print("|cff00AAFFGuildTracker v2.0:|r |cff00FF00Live-Sync|r aktiv")
-    GDL:Print("  Bewegung: |cff00FFFF" .. BROADCAST_INTERVAL_MOVING .. "s|r | Stillstand: |cff00FFFF" .. BROADCAST_INTERVAL_STATIC .. "s|r | Timeout: |cffFFD100" .. STALE_TIMEOUT .. "s|r")
+    GDL:Print("|cff00AAFFGuildTracker v2.2:|r |cff00FF00Live-Sync|r aktiv (Gilden-intern)")
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -418,17 +417,16 @@ function GuildTracker:UpdatePins()
             local py = -displayY * canvasHeight
             pin:SetPoint("CENTER", canvas, "TOPLEFT", px, py)
             
-            -- Klassenfarbe
+            -- Klassenicon setzen
+            self:SetPinClassIcon(pin, pos.classId)
+            
+            -- Glow und Name in Klassenfarbe
             local col = self:GetClassColor(pos.classId)
-            pin.icon:SetVertexColor(col[1], col[2], col[3])
-            pin.nameText:SetTextColor(col[1], col[2], col[3])
+            if pin.nameText then
+                pin.nameText:SetTextColor(col[1], col[2], col[3])
+            end
             if pin.glow then
                 pin.glow:SetVertexColor(col[1], col[2], col[3])
-            end
-            
-            -- Level-Anzeige
-            if pin.levelText and pos.level and pos.level > 0 then
-                pin.levelText:SetText(pos.level)
             end
             
             pin:Show()
@@ -454,69 +452,82 @@ function GuildTracker:GetOrCreatePin(canvas, name)
 end
 
 -- ══════════════════════════════════════════════════════════════
--- PIN ERSTELLUNG
+-- PIN ERSTELLUNG - Mit Klassenicons!
 -- ══════════════════════════════════════════════════════════════
+
+-- Klassenicon TexCoords für das Spritesheet
+local CLASS_ICON_TCOORDS = {
+    [1]  = {0, 0.25, 0, 0.25},        -- Warrior
+    [2]  = {0, 0.25, 0.5, 0.75},      -- Paladin
+    [3]  = {0, 0.25, 0.25, 0.5},      -- Hunter
+    [4]  = {0.5, 0.75, 0, 0.25},      -- Rogue
+    [5]  = {0.5, 0.75, 0.25, 0.5},    -- Priest
+    [6]  = {0.25, 0.5, 0.5, 0.75},    -- Death Knight
+    [7]  = {0.25, 0.5, 0.25, 0.5},    -- Shaman
+    [8]  = {0.25, 0.5, 0, 0.25},      -- Mage
+    [9]  = {0.75, 1, 0.25, 0.5},      -- Warlock
+    [10] = {0.5, 0.75, 0.5, 0.75},    -- Monk
+    [11] = {0.75, 1, 0, 0.25},        -- Druid
+}
 
 function GuildTracker:CreatePin(canvas, name)
     local pin = CreateFrame("Frame", nil, canvas)
-    pin:SetSize(36, 36)
+    pin:SetSize(18, 18)
     pin:SetFrameStrata("HIGH")
     pin:SetFrameLevel(110)
     
-    -- Pulsierender Glow-Ring
+    -- NUR das Klassenicon - sonst nichts!
+    local icon = pin:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(14, 14)
+    icon:SetPoint("CENTER", 0, 0)
+    icon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES")
+    icon:SetTexCoord(0, 0.25, 0, 0.25)
+    pin.icon = icon
+    
+    -- Ganz dezenter Glow (nur als Highlight)
     local glow = pin:CreateTexture(nil, "BACKGROUND")
-    glow:SetSize(32, 32)
+    glow:SetSize(18, 18)
     glow:SetPoint("CENTER", 0, 0)
     glow:SetTexture("Interface\\BUTTONS\\UI-ActionButton-Border")
     glow:SetBlendMode("ADD")
-    glow:SetAlpha(0.6)
+    glow:SetAlpha(0.3)
     pin.glow = glow
-    
-    -- Hauptsymbol: Punkt
-    local icon = pin:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(10, 10)
-    icon:SetPoint("CENTER", 0, 0)
-    icon:SetTexture("Interface\\BUTTONS\\WHITE8X8")
-    pin.icon = icon
-    
-    -- Level-Anzeige
-    local levelText = pin:CreateFontString(nil, "OVERLAY")
-    levelText:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
-    levelText:SetPoint("BOTTOMRIGHT", icon, "TOPRIGHT", 6, -2)
-    levelText:SetTextColor(1, 1, 1)
-    pin.levelText = levelText
     
     -- Name (nur bei Hover)
     local nameText = pin:CreateFontString(nil, "OVERLAY")
     nameText:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
-    nameText:SetPoint("TOP", icon, "BOTTOM", 0, -3)
+    nameText:SetPoint("TOP", icon, "BOTTOM", 0, -2)
     nameText:SetText(name)
     nameText:Hide()
     pin.nameText = nameText
     
-    -- Pulsierender Glow Animation
+    -- Sanftes Pulsieren
     local pulseTime = 0
     pin:SetScript("OnUpdate", function(self, elapsed)
         pulseTime = pulseTime + elapsed
-        local pulse = 0.4 + 0.3 * math.sin(pulseTime * 2)
+        local pulse = 0.25 + 0.2 * math.sin(pulseTime * 1.5)
         glow:SetAlpha(pulse)
-        local glowSize = 26 + 8 * math.sin(pulseTime * 2)
-        glow:SetSize(glowSize, glowSize)
     end)
     
-    -- Hover-Effekte
+    -- Hover
     pin:EnableMouse(true)
     pin:SetScript("OnEnter", function(self)
         nameText:Show()
-        icon:SetSize(14, 14)
-        glow:SetAlpha(1.0)
-        glow:SetSize(40, 40)
+        icon:SetSize(18, 18)
+        glow:SetAlpha(0.7)
+        glow:SetSize(24, 24)
         
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(name, 1, 0.85, 0.5)
         
         local pos = guildPositions[name]
         if pos then
+            local className = GuildTracker:GetClassNameById(pos.classId)
+            if className then
+                local col = GuildTracker:GetClassColor(pos.classId)
+                GameTooltip:AddLine(className, col[1], col[2], col[3])
+            end
+            
             local mapInfo = C_Map.GetMapInfo(pos.mapId)
             local mapName = mapInfo and mapInfo.name or "Unbekannt"
             GameTooltip:AddLine(mapName, 0.3, 0.8, 0.3)
@@ -526,26 +537,55 @@ function GuildTracker:CreatePin(canvas, name)
             end
             
             local ago = GetTime() - pos.timestamp
-            local status
             if ago < 5 then
-                status = "|cff00FF00● LIVE|r"
+                GameTooltip:AddLine("LIVE", 0, 1, 0)
             elseif ago < 30 then
-                status = "|cffFFFF00● vor " .. math.floor(ago) .. "s|r"
+                GameTooltip:AddLine("vor " .. math.floor(ago) .. "s", 1, 1, 0)
             else
-                status = "|cffFF8800● vor " .. math.floor(ago) .. "s|r"
+                GameTooltip:AddLine("vor " .. math.floor(ago) .. "s", 1, 0.5, 0)
             end
-            GameTooltip:AddLine(status, 1, 1, 1)
         end
         GameTooltip:Show()
     end)
     
     pin:SetScript("OnLeave", function()
         nameText:Hide()
-        icon:SetSize(10, 10)
+        icon:SetSize(14, 14)
+        glow:SetSize(18, 18)
         GameTooltip:Hide()
     end)
     
     return pin
+end
+-- Setzt das richtige Klassenicon auf einen Pin
+function GuildTracker:SetPinClassIcon(pin, classId)
+    if not pin or not pin.icon then return end
+    
+    local coords = CLASS_ICON_TCOORDS[classId]
+    if coords then
+        pin.icon:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+    else
+        -- Fallback: Warrior
+        pin.icon:SetTexCoord(0, 0.25, 0, 0.25)
+    end
+end
+
+-- Klassennamen für Tooltip
+function GuildTracker:GetClassNameById(classId)
+    local classNames = {
+        [1] = "Krieger",
+        [2] = "Paladin",
+        [3] = "Jäger",
+        [4] = "Schurke",
+        [5] = "Priester",
+        [6] = "Todesritter",
+        [7] = "Schamane",
+        [8] = "Magier",
+        [9] = "Hexenmeister",
+        [10] = "Mönch",
+        [11] = "Druide",
+    }
+    return classNames[classId]
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -656,17 +696,14 @@ end
 
 function GuildTracker:PrintStatus()
     local count = self:GetOnlineCount()
-    GDL:Print("═══════════════════════════════════════")
-    GDL:Print("|cff00AAFFGuildTracker v2.0|r Status")
-    GDL:Print("═══════════════════════════════════════")
-    GDL:Print("Aktiviert: " .. (IsEnabled() and "|cff00FF00Ja|r" or "|cffFF0000Nein|r"))
-    GDL:Print("Broadcast: |cff00FFFF" .. BROADCAST_INTERVAL_MOVING .. "s|r (Bewegung) / |cff00FFFF" .. BROADCAST_INTERVAL_STATIC .. "s|r (Still)")
-    GDL:Print("Stale-Timeout: |cffFFD100" .. STALE_TIMEOUT .. "s|r")
-    GDL:Print("Spieler online: |cffFFD100" .. count .. "|r")
+    GDL:Print("===========================================")
+    GDL:Print("|cff00AAFFGuildTracker v2.2|r Status")
+    GDL:Print("===========================================")
+    GDL:Print("Gilde Live auf Karte: |cffFFD100" .. count .. "|r Spieler")
     
     if count > 0 then
         local now = GetTime()
-        GDL:Print("───────────────────────────────────────")
+        GDL:Print("-------------------------------------------")
         for name, pos in pairs(guildPositions) do
             local ago = math.floor(now - pos.timestamp)
             if ago < STALE_TIMEOUT then
@@ -674,21 +711,18 @@ function GuildTracker:PrintStatus()
                 local mapName = mapInfo and mapInfo.name or "?"
                 local status
                 if ago < 5 then
-                    status = "|cff00FF00● LIVE|r"
+                    status = "|cff00FF00[LIVE]|r"
                 elseif ago < 30 then
-                    status = "|cffFFFF00● " .. ago .. "s|r"
+                    status = "|cffFFFF00[" .. ago .. "s]|r"
                 else
-                    status = "|cffFF8800● " .. ago .. "s|r"
+                    status = "|cffFF8800[" .. ago .. "s]|r"
                 end
                 local lvl = pos.level and pos.level > 0 and (" Lv" .. pos.level) or ""
                 GDL:Print("  " .. name .. lvl .. " - " .. mapName .. " " .. status)
             end
         end
-    else
-        GDL:Print("|cff888888Keine Gildenmitglieder mit Addon online.|r")
-        GDL:Print("|cff888888Andere brauchen v4.8.0+|r")
     end
-    GDL:Print("═══════════════════════════════════════")
+    GDL:Print("===========================================")
 end
 
 function GuildTracker:ForceBroadcast()

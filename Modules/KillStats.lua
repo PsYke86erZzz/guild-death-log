@@ -190,7 +190,8 @@ function KillStats:CacheCreatureType(unitToken)
         creatureTypeCache[guid] = {
             type = creatureType,
             name = UnitName(unitToken),
-            time = time()
+            time = time(),
+            damagedByPlayer = false  -- NEU: Haben WIR Schaden gemacht?
         }
         GDL:Debug("KillStats: Cached " .. (UnitName(unitToken) or "?") .. " als " .. creatureType)
     end
@@ -219,26 +220,39 @@ function KillStats:HandleCombatLog()
           destGUID, destName, destFlags, destRaidFlags = CombatLogGetCurrentEventInfo()
     
     local playerGUID = UnitGUID("player")
+    local petGUID = UnitGUID("pet")  -- Auch Pet-Kills zaehlen
     
-    -- Bei Schaden: Target cachen falls wir es angreifen
+    -- Bei Schaden: Markieren dass WIR diesen Mob angegriffen haben
     if subevent and subevent:match("_DAMAGE") then
-        if sourceGUID == playerGUID then
-            -- Wir haben Schaden gemacht - versuche Target zu cachen
-            if destGUID == UnitGUID("target") then
-                self:CacheCreatureType("target")
+        -- Schaden von uns oder unserem Pet
+        if sourceGUID == playerGUID or sourceGUID == petGUID then
+            -- Mob cachen falls noch nicht
+            if destGUID and destGUID:match("^Creature") then
+                -- Falls nicht im Cache, versuche zu cachen
+                if not creatureTypeCache[destGUID] then
+                    if destGUID == UnitGUID("target") then
+                        self:CacheCreatureType("target")
+                    end
+                end
+                -- Markiere dass WIR Schaden gemacht haben
+                if creatureTypeCache[destGUID] then
+                    creatureTypeCache[destGUID].damagedByPlayer = true
+                    creatureTypeCache[destGUID].time = time()
+                end
             end
         end
     end
     
-    -- Bei Kill: Zählen
+    -- Bei Kill: Zählen (NUR wenn WIR Schaden gemacht haben!)
     if subevent == "PARTY_KILL" then
-        -- PARTY_KILL: sourceGUID ist der Killer
-        if sourceGUID == playerGUID then
+        -- PARTY_KILL: sourceGUID ist der Killer - nur wenn WIR oder unser PET
+        if sourceGUID == playerGUID or sourceGUID == petGUID then
             self:ProcessKill(destGUID, destName)
         end
     elseif subevent == "UNIT_DIED" then
-        -- UNIT_DIED: Prüfen ob wir es im Cache haben (= wir haben es angegriffen)
-        if creatureTypeCache[destGUID] then
+        -- UNIT_DIED: NUR zaehlen wenn wir den Mob SELBST angegriffen haben!
+        local cacheData = creatureTypeCache[destGUID]
+        if cacheData and cacheData.damagedByPlayer then
             self:ProcessKill(destGUID, destName)
         end
     end
