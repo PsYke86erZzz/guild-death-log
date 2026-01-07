@@ -7,7 +7,7 @@
 ## Notes: Verfolgt Tode von Gildenmitgliedern im Hardcore-Modus
 ## Notes-enUS: Tracks guild member deaths in Hardcore mode
 ## Author: PsYke86
-## Version: 4.9.8
+## Version: 5.3.3
 ## SavedVariables: GuildDeathLogDB
 ## OptionalDeps: Deathlog
 
@@ -36,4 +36,7 @@ Modules/Memorial.lua
 Modules/GuildStats.lua
 Modules/MinimapButton.lua
 Modules/Debug.lua
+Modules/GuildRules.lua
+Modules/Calendar.lua
+Modules/GuildLeader.lua
 Modules/UI.lua

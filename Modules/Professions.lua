@@ -263,45 +263,71 @@ function Professions:BroadcastProfessions()
     local _, _, classId = UnitClass("player")
     local level = UnitLevel("player")
     local spec, specIndex = self:GetSpecialization()
+    local playerName = UnitName("player")
     
-    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec
-    local parts = {"PROF"}
+    -- Eigene Daten LOKAL speichern (nicht nur beim Fenster öffnen!)
+    local prof1Data = {name = "", skill = 0, max = 0}
+    local prof2Data = {name = "", skill = 0, max = 0}
     
-    -- Maximal 2 Hauptberufe senden
     local mainCount = 0
     for _, prof in ipairs(profs) do
         if not prof.secondary and mainCount < 2 then
-            table.insert(parts, prof.name or "")
-            table.insert(parts, prof.skill or 0)
-            table.insert(parts, prof.max or 300)
+            if mainCount == 0 then
+                prof1Data = {name = prof.name or "", skill = prof.skill or 0, max = prof.max or 300}
+            else
+                prof2Data = {name = prof.name or "", skill = prof.skill or 0, max = prof.max or 300}
+            end
             mainCount = mainCount + 1
         end
     end
     
-    -- Auffüllen falls weniger als 2 Berufe
-    while mainCount < 2 do
-        table.insert(parts, "")
-        table.insert(parts, 0)
-        table.insert(parts, 0)
-        mainCount = mainCount + 1
-    end
+    -- WICHTIG: Eigene Daten lokal speichern!
+    guildProfessions[playerName] = {
+        prof1 = prof1Data,
+        prof2 = prof2Data,
+        classId = classId or 0,
+        level = level or 1,
+        spec = spec or "",
+        timestamp = time()
+    }
     
+    -- In DB speichern
+    GuildDeathLogDB.professions = guildProfessions
+    
+    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec
+    local parts = {"PROF"}
+    
+    table.insert(parts, prof1Data.name)
+    table.insert(parts, prof1Data.skill)
+    table.insert(parts, prof1Data.max)
+    table.insert(parts, prof2Data.name)
+    table.insert(parts, prof2Data.skill)
+    table.insert(parts, prof2Data.max)
     table.insert(parts, classId or 0)
     table.insert(parts, level or 1)
     table.insert(parts, spec or "")
     
     local data = table.concat(parts, "|")
     C_ChatInfo.SendAddonMessage(ADDON_PREFIX, data, "GUILD")
+    
+    GDL:Debug("Professions: Broadcast gesendet - " .. prof1Data.name .. "/" .. prof2Data.name)
 end
 
 function Professions:RequestAllProfessions()
     if not IsInGuild() then return end
     C_ChatInfo.SendAddonMessage(ADDON_PREFIX, "REQ", "GUILD")
+    GDL:Debug("Professions: Request gesendet")
 end
 
 function Professions:HandleMessage(message, sender)
+    -- Sender-Name ohne Realm extrahieren
     local senderName = strsplit("-", sender)
-    if senderName == GDL.playerName then return end
+    local myName = UnitName("player")
+    
+    -- Eigene Nachrichten ignorieren
+    if senderName == myName then return end
+    
+    GDL:Debug("Professions: Nachricht von " .. senderName .. ": " .. (message or "nil"))
     
     -- Request - sende unsere Daten zurück
     if message == "REQ" then
@@ -338,6 +364,8 @@ function Professions:HandleMessage(message, sender)
     
     -- In DB speichern
     GuildDeathLogDB.professions = guildProfessions
+    
+    GDL:Debug("Professions: Empfangen von " .. senderName .. " - " .. prof1Name .. "/" .. prof2Name)
     
     -- UI aktualisieren falls offen
     if self.frame and self.frame:IsShown() then

@@ -1,5 +1,5 @@
 -- ╔============================================================══╗
--- ║     DAS BUCH DER GEFALLENEN v4.0                            ║
+-- ║     DAS BUCH DER GEFALLENEN v5.3.3                          ║
 -- ║     The Book of the Fallen                                   ║
 -- ║     Epic Edition - LastWords, Killer, Achievements          ║
 -- ║     Autor: PsYke86                                           ║
@@ -13,7 +13,7 @@ addon.GDL = GDL
 _G["GuildDeathLog"] = GDL
 _G["GuildDeathLogDB"] = _G["GuildDeathLogDB"] or {}
 
-GDL.version = "4.9.8"
+GDL.version = "5.3.3"
 GDL.addonName = addonName
 GDL.modules = {}
 GDL.currentGuildName = nil
@@ -136,7 +136,7 @@ function GDL:InitDB()
     GuildDeathLogDB.adminPassword = GuildDeathLogDB.adminPassword or nil -- Gildenleiter-Passwort
     
     -- Version Check fuer Migration
-    local currentVersion = "4.9.8"
+    local currentVersion = "5.3.3"
     local savedVersion = GuildDeathLogDB.addonVersion or "0"
     
     -- WICHTIG: Bei Update alle Settings auf AN setzen!
@@ -150,7 +150,7 @@ function GDL:InitDB()
         GuildDeathLogDB.settings.useAddonChannel = true
         GuildDeathLogDB.settings.debugPrint = false
         GuildDeathLogDB.addonVersion = currentVersion
-        print("|cffFFD100[Buch]|r v4.4.0 - Gilden-Berufe Modul hinzugefuegt!")
+        print("|cffFFD100[Buch]|r v5.3.3 - Gilden-Kalender + Events!!")
     end
     
     -- Sicherstellen dass alle Keys existieren
@@ -160,6 +160,7 @@ function GDL:InitDB()
         overlay = true,
         mapMarkers = true,
         guildTracker = true,
+        nameplateTitles = true,   -- Nameplate-Titel default AN
         useBlizzardChannel = true,
         useAddonChannel = true,
         debugPrint = false,
@@ -260,22 +261,28 @@ SlashCmdList["GDL"] = function(msg)
     elseif msg == "export" then
         if Export then Export:ShowExportWindow() end
     elseif msg == "help" then
-        GDL:Print("=== Befehle / Commands v4.7 ===")
+        GDL:Print("=== Befehle / Commands v5.3.3 ===")
         GDL:Print("/gdl - Buch oeffnen")
-        GDL:Print("/gdl hof - Ruhmeshalle")
-        GDL:Print("/gdl stats - Statistiken")
+        GDL:Print("/gdl cal - |cffFFD100Gilden-Kalender|r")
+        GDL:Print("/gdl titles - Titel-Fenster")
+        GDL:Print("/gdl nptitles - Nameplate-Titel an/aus")
         GDL:Print("/gdl ach - Meilensteine")
-        GDL:Print("/gdl kills - |cffFF6666Kill-Statistiken|r")
-        GDL:Print("/gdl killcheck - |cffFF6666Meilensteine pruefen|r")
-        GDL:Print("/gdl titles - |cffFFD100Titel-Fenster|r")
-        GDL:Print("/gdl prof - |cff00FFFFGilden-Berufe|r")
-        GDL:Print("/gdl memorial - |cff888888Gedenkhalle der Gefallenen|r")
-        GDL:Print("/gdl gstats - |cffAAFFAAGilden-Statistiken (Avg Level + Tode)|r")
-        GDL:Print("/gdl find <beruf> - Spieler mit Beruf suchen")
+        GDL:Print("/gdl prof - Gilden-Berufe")
+        GDL:Print("/gdl rules - Gildenregeln")
         GDL:Print("/gdl sync - Sync anfordern")
-        GDL:Print("/gdl track - Gilden-Karte an/aus")
-        GDL:Print("/gdl who - Wer ist online (mit Addon)")
-        GDL:Print("/gdl debug - Debug-Fenster")
+    elseif msg == "cal" or msg == "calendar" or msg == "kalender" then
+        local Calendar = GDL:GetModule("Calendar")
+        if Calendar then
+            Calendar:Toggle()
+        else
+            GDL:Print("|cffFF0000Calendar-Modul nicht geladen!|r")
+        end
+    elseif msg == "leader" or msg == "leitung" or msg == "gl" then
+        -- GEHEIMER COMMAND - nicht in Help aufgelistet!
+        local GL = GDL:GetModule("GuildLeader")
+        if GL then
+            GL:Toggle()
+        end
     elseif msg == "test" then
         if Sync then Sync:SendTestDeath() end
     elseif msg == "mtest" or msg == "milestonetest" then
@@ -352,12 +359,34 @@ SlashCmdList["GDL"] = function(msg)
         if UI then
             UI:ToggleTitles()
         end
+    elseif msg == "nptitles" or msg == "nptitel" or msg == "nameplatetitles" then
+        local Titles = GDL:GetModule("Titles")
+        if Titles then
+            Titles:ToggleNameplateTitles()
+        end
     elseif msg == "mytitles" or msg == "meinetitel" then
         local Titles = GDL:GetModule("Titles")
         if Titles then
             Titles:PrintTitles()
         else
             GDL:Print("|cffFF0000Titles-Modul nicht geladen!|r")
+        end
+    elseif msg == "titlecheck" or msg == "titelcheck" then
+        local Titles = GDL:GetModule("Titles")
+        if Titles then
+            local selected = Titles:GetSelectedTitle()
+            local isFemale = Titles:IsPlayerFemale()
+            GDL:Print("=== Titel-Debug ===")
+            GDL:Print("Geschlecht: " .. (isFemale and "Weiblich" or "Maennlich"))
+            if selected then
+                local titleText = Titles:GetTitleText(selected, isFemale)
+                GDL:Print("Aktiver Titel: |cff00FF00" .. titleText .. "|r")
+                GDL:Print("Titel-ID: " .. selected.id)
+            else
+                GDL:Print("Aktiver Titel: |cffFF0000KEINER|r")
+                GDL:Print("Du musst erst Meilensteine erreichen!")
+                GDL:Print("Nutze /gdl ach um Meilensteine zu sehen")
+            end
         end
     elseif msg == "push" then
         local Sync = GDL:GetModule("Sync")
@@ -415,6 +444,27 @@ SlashCmdList["GDL"] = function(msg)
             Memorial:ShowMemorialWindow()
         else
             GDL:Print("|cffFF0000Memorial-Modul nicht geladen!|r")
+        end
+    elseif msg == "rules" or msg == "regeln" or msg == "gildenregeln" then
+        local GuildRules = GDL:GetModule("GuildRules")
+        if GuildRules then
+            -- Erst Request senden, dann Fenster öffnen
+            GuildRules:RequestRules()
+            GuildRules:ShowWindow()
+        else
+            GDL:Print("|cffFF0000GuildRules-Modul nicht geladen!|r")
+        end
+    elseif msg == "rulessync" or msg == "regelsync" then
+        local GuildRules = GDL:GetModule("GuildRules")
+        if GuildRules then
+            GuildRules:RequestRules()
+            GDL:Print("|cffFFD100Gildenregeln werden angefordert...|r")
+        end
+    elseif msg == "titlesync" or msg == "titelsync" then
+        local Titles = GDL:GetModule("Titles")
+        if Titles then
+            Titles:RequestAllTitles()
+            GDL:Print("|cffFFD100Titel werden angefordert...|r")
         end
     elseif msg == "guildstats" or msg == "gstats" or msg == "gildenstat" then
         local GuildStats = GDL:GetModule("GuildStats")

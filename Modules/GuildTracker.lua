@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════
--- MODUL: GuildTracker v2.0 - LIVE Gilden-Tracking auf der Weltkarte
+-- MODUL: GuildTracker v2.0 - LIVE Gilden-Tracking auf der Zonenkarte
 -- Basierend auf GuildMap/MapMate Best Practices
 -- 
 -- FEATURES:
@@ -8,6 +8,8 @@
 --   • Delta-basiertes Senden (nur bei Positionsänderung)
 --   • Robustes Cleanup-System
 --   • Smooth Hermite-Interpolation für flüssige Pin-Bewegung
+--
+-- HINWEIS: Kontinent/Weltkarten-Anzeige deaktiviert (instabil in Classic)
 -- ══════════════════════════════════════════════════════════════
 
 local addonName, addon = ...
@@ -345,21 +347,22 @@ function GuildTracker:UpdatePinPositions()
     
     local now = GetTime()
     
+    -- NUR gleiche Map - stabil ohne Flackern
     for name, pos in pairs(guildPositions) do
         if pos.mapId == currentMapId and (now - pos.timestamp) < STALE_TIMEOUT then
             local pin = mapPins[name]
             if pin and pin:IsShown() then
                 -- Interpolation berechnen
                 local progress = 1
-                if pos.interpDuration > 0 then
-                    local elapsed = now - pos.interpStart
+                if pos.interpDuration and pos.interpDuration > 0 then
+                    local elapsed = now - (pos.interpStart or now)
                     progress = math.min(elapsed / pos.interpDuration, 1)
                     progress = HermiteInterpolate(progress)
                 end
                 
                 -- Aktuelle Position berechnen
-                local currentX = pos.startX + (pos.targetX - pos.startX) * progress
-                local currentY = pos.startY + (pos.targetY - pos.startY) * progress
+                local currentX = (pos.startX or pos.x) + ((pos.targetX or pos.x) - (pos.startX or pos.x)) * progress
+                local currentY = (pos.startY or pos.y) + ((pos.targetY or pos.y) - (pos.startY or pos.y)) * progress
                 
                 pos.currentX = currentX
                 pos.currentY = currentY
@@ -404,7 +407,7 @@ function GuildTracker:UpdatePins()
         pin:Hide()
     end
     
-    -- Pins für aktive Spieler anzeigen
+    -- Pins NUR für Spieler auf der GLEICHEN Map anzeigen (stabil!)
     for name, pos in pairs(guildPositions) do
         if pos.mapId == currentMapId and (now - pos.timestamp) < STALE_TIMEOUT then
             local pin = self:GetOrCreatePin(canvas, name)
@@ -432,6 +435,13 @@ function GuildTracker:UpdatePins()
             pin:Show()
         end
     end
+end
+
+-- Transformiert Koordinaten - DEAKTIVIERT wegen Instabilität in Classic
+function GuildTracker:TransformCoordinates(sourceMapId, x, y, targetMapId)
+    -- Kontinent/Weltkarten-Transformation verursacht Flackern
+    -- Daher deaktiviert - nur gleiche Map wird angezeigt
+    return nil, nil
 end
 
 function GuildTracker:HidePins()

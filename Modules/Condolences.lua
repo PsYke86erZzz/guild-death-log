@@ -258,15 +258,15 @@ local SPECIALS = {
     "Die Gilde wird nie dieselbe sein ohne %s. Ruhe in Frieden, Freund.",
     "In unserer Gilde vergessen wir keinen. %s, du lebst in uns weiter.",
     "Wir stehen vereint in der Trauer um %s. Du warst einer von uns.",
-    "%s war mehr als ein Gildenmitglied. %s war Familie.",
+    "%s war mehr als ein Gildenmitglied. Familie.",
     
     -- Philosophisch & Tiefgründig
     "Der Tod ist nicht das Ende. %s lebt weiter - in jedem von uns.",
-    "Manche sagen, %s sei gestorben. Wir sagen, %s wurde unsterblich.",
+    "Manche sagen, %s sei gestorben. Wir sagen: Unsterblich in unseren Herzen.",
     "%s hat uns gelehrt, dass jeder Moment kostbar ist. Danke, Freund.",
-    "Die Zeit mit %s war ein Geschenk. Wir werden es für immer schätzen.",
+    "Die Zeit mit %s war ein Geschenk. Wir werden es fuer immer schaetzen.",
     "%s's Reise in dieser Welt endet, doch eine neue beginnt.",
-    "Der Körper mag vergehen, doch %s's Geist wird ewig über Azeroth wachen.",
+    "Der Koerper mag vergehen, doch %s's Geist wird ewig ueber Azeroth wachen.",
     
     -- Dramatisch & Emotional
     "Heute weint ganz Azeroth. %s ist nicht mehr.",
@@ -372,32 +372,31 @@ local CLASS_MESSAGES = {
 local LEVEL_MESSAGES = {
     -- Low Level (1-19)
     low = {
-        "%s (Level %d) - So jung, so tragisch. Ruhe in Frieden, junger Held.",
-        "Die Reise von %s (Level %d) endete viel zu früh. Mögest du Frieden finden.",
-        "%s hatte gerade erst begonnen. Level %d war das letzte Kapitel. Ruhe sanft.",
-        "Ein junger Held fällt: %s, Level %d. Dein Mut wird nicht vergessen.",
+        "%s (Level %d) - So jung, so tragisch. Ruhe in Frieden.",
+        "%s (Level %d) - Die Reise endete viel zu frueh. Ruhe sanft.",
+        "%s (Level %d) - Gerade erst begonnen. Dein Mut wird nicht vergessen.",
+        "%s (Level %d) - Ein junger Held faellt. Moege er Frieden finden.",
     },
     -- Mid Level (20-39)
     mid = {
-        "%s (Level %d) - Auf halbem Weg zur Legende, doch das Schicksal hatte andere Pläne.",
-        "Level %d Held %s ist gefallen. So nah am Ziel, und doch so fern. Ruhe in Frieden.",
-        "%s kämpfte sich bis Level %d. Möge die Reise im Jenseits weitergehen.",
-        "Die Geschichte von %s (Level %d) endet hier. Doch Legenden leben ewig.",
+        "%s (Level %d) - Auf halbem Weg zur Legende gefallen. Ruhe in Frieden.",
+        "%s (Level %d) - So nah am Ziel, und doch so fern. Die Gilde trauert.",
+        "%s (Level %d) - Moege die Reise im Jenseits weitergehen.",
+        "%s (Level %d) - Die Geschichte endet hier. Doch Legenden leben ewig.",
     },
     -- High Level (40-59)
     high = {
-        "%s (Level %d) - So kurz vor dem Gipfel. Ein tragischer Verlust für uns alle.",
-        "Level %d! %s war so nah an der Spitze. Dein Opfer wird nicht vergessen.",
-        "%s (Level %d) - Ein erfahrener Held fällt. Die Gilde trauert.",
-        "Die Gilde verliert einen Level %d Veteranen: %s. Ruhe in Ehren.",
+        "%s (Level %d) - So kurz vor dem Gipfel. Ein tragischer Verlust.",
+        "%s (Level %d) - Ein erfahrener Held faellt. Dein Opfer wird nicht vergessen.",
+        "%s (Level %d) - Ein Veteran ist gefallen. Die Gilde trauert.",
+        "%s (Level %d) - Ruhe in Ehren, tapferer Held.",
     },
     -- Max Level (60)
     max = {
-        "%s (Level 60) - Ein wahrer Champion ist gefallen. Ewige Ehre sei dir.",
-        "Level 60 Legende %s hat den ultimativen Preis gezahlt. Ruhe in Frieden, Held.",
-        "%s - Level 60, der Gipfel erreicht, und doch vom Schicksal genommen. Niemals vergessen.",
-        "Unser Level 60 Held %s ist gefallen. Die Gilde wird seine Größe nie vergessen.",
-        "%s (Level 60) - Du hast alles erreicht. Nun ruhe in ewigem Ruhm.",
+        "%s (Level 60) - Ein wahrer Champion ist gefallen. Ewige Ehre.",
+        "%s (Level 60) - Der ultimative Preis wurde gezahlt. Ruhe in Frieden.",
+        "%s (Level 60) - Den Gipfel erreicht, nun ruhe in ewigem Ruhm.",
+        "%s (Level 60) - Die Gilde wird deine Groesse nie vergessen.",
     },
 }
 
@@ -411,7 +410,7 @@ function Condolences:GenerateEpicMessage(name, level, className, killer, zone)
     -- 20% Chance auf Spezial-Nachricht
     if roll <= 20 then
         local msg = SPECIALS[math.random(#SPECIALS)]
-        return string.format(msg, name, name) -- Manche haben 2x %s
+        return string.format(msg, name)
     end
     
     -- 15% Chance auf Klassen-spezifische Nachricht

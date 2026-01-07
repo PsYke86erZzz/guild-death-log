@@ -108,7 +108,7 @@ function UI:CreateChronicle()
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\MORPHEUS.TTF", 24, "")
     title:SetPoint("TOP", 15, -30)
-    title:SetText("|cff8B4513Das Buch der Gefallenen|r")
+    title:SetText("|cff8B4513" .. GDL:L("ADDON_TITLE") .. "|r")
     title:SetShadowOffset(2, -2)
     title:SetShadowColor(0, 0, 0, 0.8)
     
@@ -138,10 +138,12 @@ function UI:CreateChronicle()
     statsFrame:SetBackdropBorderColor(0.5, 0.4, 0.3, 0.8)
     
     -- Statistiken in Spalten
-    f.statTotal = self:CreateStatColumn(statsFrame, "TOPLEFT", 15, -8, "Gefallene", "0")
+    local statLabel = GetLocale() == "deDE" and "Gefallene" or "Fallen"
+    f.statTotal = self:CreateStatColumn(statsFrame, "TOPLEFT", 15, -8, statLabel, "0")
     f.statToday = self:CreateStatColumn(statsFrame, "TOP", -60, -8, "Heute", "0")
     f.statWeek = self:CreateStatColumn(statsFrame, "TOP", 60, -8, "Diese Woche", "0")
-    f.statAvgLvl = self:CreateStatColumn(statsFrame, "TOPRIGHT", -15, -8, "Ø Level", "0")
+    local avgLabel = GetLocale() == "deDE" and "Ø Level" or "Avg Level"
+    f.statAvgLvl = self:CreateStatColumn(statsFrame, "TOPRIGHT", -15, -8, avgLabel, "0")
     
     -- ═══ TRENNLINIE MIT ORNAMENT ═══
     local divider = f:CreateTexture(nil, "ARTWORK")
@@ -162,7 +164,7 @@ function UI:CreateChronicle()
     local listHeader = f:CreateFontString(nil, "OVERLAY")
     listHeader:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     listHeader:SetPoint("TOPLEFT", 30, -175)
-    listHeader:SetText("|cff5a4530- Chronik der Gefallenen -|r")
+    listHeader:SetText("|cff5a4530" .. GDL:L("CHRONICLE_HEADER") .. "|r")
     
     -- Scroll Container
     local scrollContainer = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -219,12 +221,12 @@ function UI:CreateChronicle()
     
     -- Reihe 1 (oben)
     local btnY1 = 68
-    f.btnRefresh = self:CreateElegantButton(f, "Aktualisieren", startX + (btnWidth + btnSpacing) * 0, btnY1, function()
+    f.btnRefresh = self:CreateElegantButton(f, GDL:L("BTN_REFRESH"), startX + (btnWidth + btnSpacing) * 0, btnY1, function()
         local D = GDL:GetModule("Deathlog") if D then D:ScanData() end
         self:UpdateChronicle()
     end)
     
-    f.btnSettings = self:CreateElegantButton(f, "Einstellungen", startX + (btnWidth + btnSpacing) * 1, btnY1, function()
+    f.btnSettings = self:CreateElegantButton(f, GDL:L("BTN_SETTINGS"), startX + (btnWidth + btnSpacing) * 1, btnY1, function()
         self:ShowSettings()
     end)
     
@@ -242,23 +244,23 @@ function UI:CreateChronicle()
     
     -- Reihe 2 (mitte)
     local btnY2 = 42
-    f.btnHallOfFame = self:CreateElegantButton(f, "Ruhmeshalle", startX + (btnWidth + btnSpacing) * 0, btnY2, function()
+    f.btnHallOfFame = self:CreateElegantButton(f, GDL:L("BTN_HALL_OF_FAME"), startX + (btnWidth + btnSpacing) * 0, btnY2, function()
         self:ShowHallOfFame()
     end)
     
-    f.btnStats = self:CreateElegantButton(f, "Statistiken", startX + (btnWidth + btnSpacing) * 1, btnY2, function()
+    f.btnStats = self:CreateElegantButton(f, GDL:L("BTN_STATISTICS"), startX + (btnWidth + btnSpacing) * 1, btnY2, function()
         self:ShowStatistics()
     end)
     
-    f.btnAchievements = self:CreateElegantButton(f, "Meilensteine", startX + (btnWidth + btnSpacing) * 2, btnY2, function()
+    f.btnAchievements = self:CreateElegantButton(f, GDL:L("BTN_MILESTONES"), startX + (btnWidth + btnSpacing) * 2, btnY2, function()
         self:ShowAchievements()
     end)
     
-    f.btnProfessions = self:CreateElegantButton(f, "Berufe", startX + (btnWidth + btnSpacing) * 3, btnY2, function()
+    f.btnProfessions = self:CreateElegantButton(f, GDL:L("BTN_PROFESSIONS"), startX + (btnWidth + btnSpacing) * 3, btnY2, function()
         local P = GDL:GetModule("Professions") if P then P:ShowWindow() end
     end)
     
-    f.btnGuildMap = self:CreateElegantButton(f, "Gilden-Karte", startX + (btnWidth + btnSpacing) * 4, btnY2, function()
+    f.btnGuildMap = self:CreateElegantButton(f, GDL:L("BTN_GUILD_MAP"), startX + (btnWidth + btnSpacing) * 4, btnY2, function()
         local GT = GDL:GetModule("GuildTracker") 
         if GT then 
             GT:Toggle()
@@ -267,16 +269,44 @@ function UI:CreateChronicle()
     
     -- Reihe 3 (unten) - Neue Features
     local btnY3 = 20
-    f.btnTitles = self:CreateElegantButton(f, "Titel", startX + (btnWidth + btnSpacing) * 0, btnY3, function()
+    f.btnTitles = self:CreateElegantButton(f, GDL:L("BTN_TITLES"), startX + (btnWidth + btnSpacing) * 0, btnY3, function()
         self:ToggleTitles()
     end)
     
-    f.btnMemorial = self:CreateElegantButton(f, "Gedenkhalle", startX + (btnWidth + btnSpacing) * 1, btnY3, function()
+    f.btnMemorial = self:CreateElegantButton(f, GDL:L("BTN_MEMORIAL"), startX + (btnWidth + btnSpacing) * 1, btnY3, function()
         local M = GDL:GetModule("Memorial") if M then M:ShowMemorialWindow() end
     end)
     
-    f.btnGuildStats = self:CreateElegantButton(f, "Gilden-Stats", startX + (btnWidth + btnSpacing) * 2, btnY3, function()
+    f.btnGuildStats = self:CreateElegantButton(f, GDL:L("BTN_GUILD_STATS"), startX + (btnWidth + btnSpacing) * 2, btnY3, function()
         local GS = GDL:GetModule("GuildStats") if GS then GS:ShowStatsWindow() end
+    end)
+    
+    f.btnRules = self:CreateElegantButton(f, GDL:L("BTN_RULES"), startX + (btnWidth + btnSpacing) * 3, btnY3, function()
+        local GR = GDL:GetModule("GuildRules") if GR then GR:ShowWindow() end
+    end)
+    
+    f.btnCalendar = self:CreateElegantButton(f, GDL:L("BTN_CALENDAR"), startX + (btnWidth + btnSpacing) * 4, btnY3, function()
+        local Cal = GDL:GetModule("Calendar") if Cal then Cal:Toggle() end
+    end)
+    
+    -- ═══ GEHEIMER GILDENLEITER BUTTON (nur für Offiziere!) ═══
+    -- Reihe 4 - nur sichtbar wenn Offizier
+    local btnY4 = -2
+    f.btnLeader = self:CreateElegantButton(f, GDL:L("BTN_LEADER"), startX + (btnWidth + btnSpacing) * 2, btnY4, function()
+        local GL = GDL:GetModule("GuildLeader") if GL then GL:Toggle() end
+    end)
+    f.btnLeader:Hide() -- Default versteckt
+    
+    -- Prüfe ob Offizier und zeige Button
+    C_Timer.After(2, function()
+        local GL = GDL:GetModule("GuildLeader")
+        if GL and GL:ShouldShowButton() then
+            f.btnLeader:Show()
+            -- Button rot färben für "geheim"
+            if f.btnLeader.bg then
+                f.btnLeader.bg:SetColorTexture(0.3, 0.1, 0.1, 0.9)
+            end
+        end
     end)
     
     -- ═══ OPEN ANIMATION ═══
@@ -392,7 +422,7 @@ function UI:UpdateChronicle()
     if GDL.currentGuildName then
         f.guildName:SetText("< " .. GDL.currentGuildName .. " >")
     else
-        f.guildName:SetText("|cff666666Keine Gilde|r")
+        f.guildName:SetText("|cff666666" .. GDL:L("NO_GUILD") .. "|r")
     end
     
     -- Daten sammeln
@@ -435,7 +465,8 @@ function UI:UpdateChronicle()
         local empty = f.scrollChild:CreateFontString(nil, "OVERLAY")
         empty:SetFont("Fonts\\MORPHEUS.TTF", 14, "")
         empty:SetPoint("TOP", 0, -80)
-        empty:SetText("|cff556644Keine Gefallenen verzeichnet.|r\n|cff445533Die Gilde steht stark.|r")
+        local emptyText = GetLocale() == "deDE" and "|cff556644Keine Gefallenen verzeichnet.|r\n|cff445533Die Gilde steht stark.|r" or "|cff556644No fallen recorded.|r\n|cff445533The guild stands strong.|r"
+        empty:SetText(emptyText)
         empty:SetJustifyH("CENTER")
     else
         for i, d in ipairs(sortedDeaths) do
@@ -713,7 +744,8 @@ function UI:DisplayOverlay(data)
     -- Killer Info (v4.0)
     local killer = death.killerName or death.killer
     if killer and killer ~= "" and killer ~= "Unknown" then
-        o.killerText:SetText("Getötet von / Killed by: " .. killer)
+        local killerLabel = GetLocale() == "deDE" and "Getoetet von: " or "Killed by: "
+        o.killerText:SetText(killerLabel .. killer)
         o.killerText:Show()
     else
         o.killerText:SetText("")
@@ -884,7 +916,7 @@ end
 
 function UI:CreateSettings()
     local s = CreateFrame("Frame", "GDLSettings", UIParent, "BackdropTemplate")
-    s:SetSize(300, 370)  -- Etwas größer für neue Option
+    s:SetSize(300, 400)  -- Angepasst für aktuelle Optionen
     s:SetPoint("CENTER", UIParent, "CENTER", 450, 350)  -- Rechts-ganz-oben (cascade)
     s:SetFrameStrata("DIALOG")
     s:SetFrameLevel(110)
@@ -908,22 +940,25 @@ function UI:CreateSettings()
     local title = s:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\MORPHEUS.TTF", 18, "")
     title:SetPoint("TOP", 0, -18)
-    title:SetText("|cff4a3520Einstellungen|r")
+    local settingsTitle = GetLocale() == "deDE" and "Einstellungen" or "Settings"
+    title:SetText("|cff4a3520" .. settingsTitle .. "|r")
     
     -- Close button
     local closeBtn = CreateFrame("Button", nil, s, "UIPanelCloseButton")
     closeBtn:SetPoint("TOPRIGHT", -4, -4)
     
     local y, cbs = -45, {}
+    local isDE = GetLocale() == "deDE"
     local opts = {
-        {"Gildenchat-Ankuendigung", "announce"}, 
-        {"Sound abspielen", "sound"}, 
-        {"Todes-Popup anzeigen", "overlay"}, 
-        {"Karten-Markierungen (Tode)", "mapMarkers"}, 
-        {"Gilden-Karte (Live-Positionen)", "guildTracker"},
-        {"Blizzard HC-Channel", "useBlizzardChannel"}, 
-        {"Addon-Sync aktiv", "useAddonChannel"}, 
-        {"Debug-Ausgaben", "debugPrint"}
+        {isDE and "Gildenchat-Ankuendigung" or "Guild chat announcement", "announce"}, 
+        {isDE and "Sound abspielen" or "Play sound", "sound"}, 
+        {isDE and "Todes-Popup anzeigen" or "Show death popup", "overlay"}, 
+        {isDE and "Karten-Markierungen (Tode)" or "Map markers (deaths)", "mapMarkers"}, 
+        {isDE and "Gilden-Karte (Live-Positionen)" or "Guild map (live positions)", "guildTracker"},
+        {isDE and "Titel auf Nameplates" or "Show titles on nameplates", "nameplateTitles"},
+        {isDE and "Blizzard HC-Channel" or "Blizzard HC channel", "useBlizzardChannel"}, 
+        {isDE and "Addon-Sync aktiv" or "Addon sync active", "useAddonChannel"}, 
+        {isDE and "Debug-Ausgaben" or "Debug output", "debugPrint"}
     }
     
     for _, opt in ipairs(opts) do
@@ -1130,7 +1165,8 @@ function UI:CreateStatisticsWindow()
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\MORPHEUS.TTF", 16, "")
     title:SetPoint("LEFT", titleIcon, "RIGHT", 8, 0)
-    title:SetText("|cff1a0a00Statistiken|r")
+    local statsTitle = GetLocale() == "deDE" and "Statistiken" or "Statistics"
+    title:SetText("|cff1a0a00" .. statsTitle .. "|r")
     
     -- Scroll für Content
     local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
@@ -1397,34 +1433,54 @@ function UI:CreateMilestonesWindow()
     local title = f:CreateFontString(nil, "OVERLAY")
     title:SetFont("Fonts\\MORPHEUS.TTF", 18, "")
     title:SetPoint("TOP", 0, -15)
-    title:SetText("|cff1a0a00Meilensteine / Milestones|r")
+    title:SetText("|cff1a0a00" .. GDL:L("BTN_MILESTONES") .. "|r")
     
     -- Charakter-Name Anzeige
     local charInfo = f:CreateFontString(nil, "OVERLAY")
     charInfo:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
     charInfo:SetPoint("TOP", title, "BOTTOM", 0, -5)
-    charInfo:SetTextColor(0.2, 0.15, 0.1)  -- Dunkelbraun für bessere Lesbarkeit
+    charInfo:SetTextColor(0.2, 0.15, 0.1)
     f.charInfo = charInfo
     
-    -- Kategorie-Buttons - 5 Kategorien
+    -- Kategorie-Namen lokalisiert (für Tooltips)
+    local catTooltips = {
+        level = GetLocale() == "deDE" and "Level-Meilensteine" or "Level Milestones",
+        survival = GetLocale() == "deDE" and "Spielzeit" or "Playtime",
+        dungeon = GetLocale() == "deDE" and "Dungeon-Bosse" or "Dungeon Bosses",
+        raid = GetLocale() == "deDE" and "Raid-Bosse" or "Raid Bosses",
+        profession = GetLocale() == "deDE" and "Berufe" or "Professions",
+        kills = GetLocale() == "deDE" and "Kill-Statistiken" or "Kill Stats",
+        wealth = GetLocale() == "deDE" and "Gold-Meilensteine" or "Gold Milestones",
+        meta = GetLocale() == "deDE" and "Meta-Erfolge" or "Meta Achievements",
+        secret = GetLocale() == "deDE" and "Geheime Erfolge" or "Secret Achievements",
+    }
+    
+    -- Kategorie-Buttons - NUR Icons in einer Reihe
     local categories = {
-        {id = "level", name = "Level", icon = "Interface\\Icons\\Spell_Holy_WordFortitude"},
-        {id = "dungeon", name = "Dungeons", icon = "Interface\\Icons\\INV_Misc_Key_04"},
-        {id = "raid", name = "Raids", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01"},
-        {id = "profession", name = "Berufe", icon = "Interface\\Icons\\Trade_BlackSmithing"},
-        {id = "kills", name = "Kills", icon = "Interface\\Icons\\Ability_DualWield"},
+        {id = "level", icon = "Interface\\Icons\\Spell_Holy_WordFortitude", color = {0.2, 0.8, 0.2}},
+        {id = "survival", icon = "Interface\\Icons\\Spell_Nature_TimeStop", color = {0.4, 0.6, 0.9}},
+        {id = "dungeon", icon = "Interface\\Icons\\INV_Misc_Key_04", color = {0.5, 0.5, 0.9}},
+        {id = "raid", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", color = {0.9, 0.5, 0.2}},
+        {id = "profession", icon = "Interface\\Icons\\Trade_BlackSmithing", color = {0.7, 0.6, 0.3}},
+        {id = "kills", icon = "Interface\\Icons\\Ability_DualWield", color = {0.9, 0.3, 0.3}},
+        {id = "wealth", icon = "Interface\\Icons\\INV_Misc_Coin_06", color = {0.9, 0.8, 0.2}},
+        {id = "meta", icon = "Interface\\Icons\\Achievement_General_StayClassy", color = {0.6, 0.4, 0.8}},
+        {id = "secret", icon = "Interface\\Icons\\INV_Misc_QuestionMark", color = {0.8, 0.2, 0.8}},
     }
     
     f.categoryButtons = {}
     f.selectedCategory = "level"
     
-    local btnWidth = 82
-    local totalWidth = #categories * btnWidth + (#categories - 1) * 5
-    local btnX = -totalWidth / 2
+    -- Icon-only Buttons in einer Reihe
+    local iconSize = 32
+    local iconSpacing = 6
+    local totalWidth = #categories * iconSize + (#categories - 1) * iconSpacing
+    local startX = -totalWidth / 2
+    
     for i, cat in ipairs(categories) do
         local btn = CreateFrame("Button", nil, f, "BackdropTemplate")
-        btn:SetSize(btnWidth, 28)
-        btn:SetPoint("TOP", btnX + (i-1)*(btnWidth + 5) + btnWidth/2, -55)
+        btn:SetSize(iconSize + 6, iconSize + 6)
+        btn:SetPoint("TOP", startX + (i-1) * (iconSize + iconSpacing) + iconSize/2, -52)
         
         btn:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -1432,18 +1488,15 @@ function UI:CreateMilestonesWindow()
             edgeSize = 8,
             insets = {left = 2, right = 2, top = 2, bottom = 2}
         })
-        btn:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
-        btn:SetBackdropBorderColor(0.4, 0.35, 0.25, 1)
+        btn:SetBackdropColor(0.05, 0.05, 0.05, 0.9)
+        btn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
         
         local icon = btn:CreateTexture(nil, "ARTWORK")
-        icon:SetSize(20, 20)
-        icon:SetPoint("LEFT", 5, 0)
+        icon:SetSize(iconSize - 4, iconSize - 4)
+        icon:SetPoint("CENTER", 0, 0)
         icon:SetTexture(cat.icon)
-        
-        local text = btn:CreateFontString(nil, "OVERLAY")
-        text:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-        text:SetPoint("LEFT", icon, "RIGHT", 3, 0)
-        text:SetText(cat.name)
+        btn.icon = icon
+        btn.color = cat.color
         
         btn.categoryId = cat.id
         btn:SetScript("OnClick", function()
@@ -1452,15 +1505,28 @@ function UI:CreateMilestonesWindow()
         end)
         
         btn:SetScript("OnEnter", function(self)
-            self:SetBackdropColor(0.2, 0.2, 0.15, 0.9)
+            self:SetBackdropBorderColor(unpack(cat.color))
+            self.icon:SetVertexColor(1, 1, 1, 1)
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+            GameTooltip:SetText(catTooltips[cat.id], 1, 1, 1)
+            GameTooltip:Show()
         end)
         btn:SetScript("OnLeave", function(self)
             if f.selectedCategory == self.categoryId then
-                self:SetBackdropColor(0.2, 0.15, 0.1, 0.9)
+                self:SetBackdropBorderColor(unpack(cat.color))
             else
-                self:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
+                self:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+                self.icon:SetVertexColor(0.7, 0.7, 0.7, 1)
             end
+            GameTooltip:Hide()
         end)
+        
+        -- Initial: Nicht ausgewählt = leicht ausgegraut
+        if cat.id ~= "level" then
+            icon:SetVertexColor(0.7, 0.7, 0.7, 1)
+        else
+            btn:SetBackdropBorderColor(unpack(cat.color))
+        end
         
         f.categoryButtons[cat.id] = btn
     end
@@ -1489,16 +1555,17 @@ function UI:UpdateMilestones()
     local charKey = Milestones:GetCharacterKey()
     local charName = UnitName("player")
     local unlocked, total = Milestones:GetMilestoneProgress(charKey)
-    f.charInfo:SetText("|cffFFD100" .. charName .. "|r |cff3a2a10- " .. unlocked .. "/" .. total .. " Meilensteine|r")
+    local infoText = GetLocale() == "deDE" and "Meilensteine" or "Milestones"
+    f.charInfo:SetText("|cffFFD100" .. charName .. "|r |cff3a2a10- " .. unlocked .. "/" .. total .. " " .. infoText .. "|r")
     
-    -- Button-Farben aktualisieren
+    -- Button-Farben aktualisieren (Icon-Only Design)
     for catId, btn in pairs(f.categoryButtons) do
         if catId == category then
-            btn:SetBackdropColor(0.2, 0.15, 0.1, 0.9)
-            btn:SetBackdropBorderColor(0.8, 0.7, 0.4, 1)
+            btn:SetBackdropBorderColor(unpack(btn.color))
+            btn.icon:SetVertexColor(1, 1, 1, 1)
         else
-            btn:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
-            btn:SetBackdropBorderColor(0.4, 0.35, 0.25, 1)
+            btn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+            btn.icon:SetVertexColor(0.7, 0.7, 0.7, 1)
         end
     end
     
@@ -1517,11 +1584,15 @@ function UI:UpdateMilestones()
     header:SetPoint("TOPLEFT", 5, y)
     
     local categoryNames = {
-        level = "Level-Meilensteine",
-        dungeon = "Dungeon-Bosse",
-        raid = "Raid-Bosse",
-        profession = "Berufe",
-        kills = "Kill-Meilensteine"
+        level = GetLocale() == "deDE" and "Level-Meilensteine" or "Level Milestones",
+        survival = GetLocale() == "deDE" and "Spielzeit-Meilensteine" or "Playtime Milestones",
+        dungeon = GetLocale() == "deDE" and "Dungeon-Bosse" or "Dungeon Bosses",
+        raid = GetLocale() == "deDE" and "Raid-Bosse" or "Raid Bosses",
+        profession = GetLocale() == "deDE" and "Berufe-Meilensteine" or "Profession Milestones",
+        kills = GetLocale() == "deDE" and "Kill-Meilensteine" or "Kill Milestones",
+        wealth = GetLocale() == "deDE" and "Gold-Meilensteine" or "Gold Milestones",
+        meta = GetLocale() == "deDE" and "Meta-Erfolge" or "Meta Achievements",
+        secret = GetLocale() == "deDE" and "Geheime Meilensteine" or "Secret Milestones",
     }
     header:SetText("|cff1a0a00" .. (categoryNames[category] or category) .. "|r |cff806040- " .. catUnlocked .. "/" .. catTotal .. "|r")
     y = y - 25
@@ -1536,10 +1607,8 @@ function UI:UpdateMilestones()
         local unlockData = charMilestones[m.id]
         
         -- Kill-Meilensteine brauchen mehr Platz für Progress-Leiste
+        -- Konstante Zeilenhöhe für alle
         local rowHeight = 55
-        if not isUnlocked and m.type == "kills" then
-            rowHeight = 68
-        end
         
         local row = CreateFrame("Frame", nil, content, "BackdropTemplate")
         row:SetSize(380, rowHeight)
@@ -1555,10 +1624,14 @@ function UI:UpdateMilestones()
         -- Farbe basierend auf Kategorie und Status
         local catColors = {
             level = {0.2, 0.6, 0.2},
+            survival = {0.3, 0.5, 0.7},
             dungeon = {0.4, 0.4, 0.8},
             raid = {0.8, 0.4, 0.2},
             profession = {0.6, 0.5, 0.2},
-            kills = {0.7, 0.2, 0.2}
+            kills = {0.7, 0.2, 0.2},
+            wealth = {0.8, 0.7, 0.2},
+            meta = {0.5, 0.3, 0.7},
+            secret = {0.6, 0.1, 0.6},
         }
         local color = catColors[category] or {0.5, 0.5, 0.5}
         
@@ -1574,7 +1647,14 @@ function UI:UpdateMilestones()
         local icon = row:CreateTexture(nil, "ARTWORK")
         icon:SetSize(42, 42)
         icon:SetPoint("LEFT", 6, 0)
-        icon:SetTexture(m.icon)
+        
+        -- Geheime Meilensteine: Fragezeichen-Icon wenn nicht freigeschaltet
+        if m.secret and not isUnlocked then
+            icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        else
+            icon:SetTexture(m.icon)
+        end
+        
         if not isUnlocked then 
             icon:SetDesaturated(true) 
             icon:SetAlpha(0.4) 
@@ -1587,6 +1667,8 @@ function UI:UpdateMilestones()
         name:SetWidth(280)
         if isUnlocked then
             name:SetText("|cff00FF00[+]|r " .. m.name)
+        elseif m.secret then
+            name:SetText("|cffAA00AA" .. m.name .. "|r")
         else
             name:SetText("|cff666666" .. m.name .. "|r")
         end
@@ -1595,8 +1677,92 @@ function UI:UpdateMilestones()
         local desc = row:CreateFontString(nil, "OVERLAY")
         desc:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
         desc:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
-        desc:SetWidth(280)
-        desc:SetText("|cff888888" .. m.desc .. "|r")
+        desc:SetWidth(220)
+        
+        local descText = m.desc
+        if m.secret and not isUnlocked then
+            descText = "???"
+        end
+        desc:SetText("|cff888888" .. descText .. "|r")
+        
+        -- Fortschritts-Anzeige (Zahlen, keine Balken!) für alle nicht-freigeschalteten mit Threshold
+        if not isUnlocked and m.threshold then
+            local current = 0
+            local threshold = m.threshold
+            
+            if m.type == "kills" and m.creatureType then
+                -- Kreaturtyp-Kills
+                local KillStats = GDL:GetModule("KillStats")
+                if KillStats then
+                    current = KillStats:GetKillCount(m.creatureType)
+                end
+            elseif m.type == "total_kills" then
+                -- Total Kills
+                local KillStats = GDL:GetModule("KillStats")
+                if KillStats then
+                    current = KillStats:GetTotalKills()
+                end
+            elseif m.type == "gold" then
+                -- Gold (in Kupfer)
+                current = GetMoney()
+            elseif m.type == "playtime" then
+                -- Spielzeit (wird separat getrackt)
+                local charData = Milestones:GetCharacterData(charKey)
+                current = charData.stats and charData.stats.totalPlaytime or 0
+            elseif m.type == "level" then
+                -- Level
+                current = UnitLevel("player")
+            elseif m.type == "profession" or m.type == "fishing" or m.type == "cooking" or m.type == "firstaid" then
+                -- Berufe über Classic-kompatible API
+                local profSkills = Milestones:GetProfessionSkills()
+                if m.type == "profession" then
+                    current = profSkills.maxMain or 0
+                elseif m.type == "fishing" then
+                    current = profSkills.fishing or 0
+                elseif m.type == "cooking" then
+                    current = profSkills.cooking or 0
+                elseif m.type == "firstaid" then
+                    current = profSkills.firstaid or 0
+                end
+            end
+            
+            -- Prüfe ob Meilenstein erreicht aber noch nicht freigeschaltet
+            if current >= threshold then
+                local charName = UnitName("player")
+                local level = UnitLevel("player")
+                Milestones:UnlockMilestone(m.id, charKey, charName, level, true)
+                
+                -- Aktualisiere Anzeige
+                row:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.8)
+                row:SetBackdropBorderColor(color[1], color[2], color[3], 0.9)
+                icon:SetDesaturated(false)
+                icon:SetAlpha(1)
+                name:SetText("|cff00FF00[+]|r " .. m.name)
+            else
+                -- Zeige Fortschritt als Zahlen
+                local progressText = row:CreateFontString(nil, "OVERLAY")
+                progressText:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+                progressText:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 10, 3)
+                
+                -- Formatiere die Zahlen je nach Typ
+                local currentStr, thresholdStr
+                if m.type == "gold" then
+                    -- Gold: Kupfer zu Gold konvertieren
+                    currentStr = math.floor(current / 10000)
+                    thresholdStr = math.floor(threshold / 10000) .. "g"
+                    currentStr = currentStr .. "g"
+                elseif m.type == "playtime" then
+                    -- Spielzeit: Sekunden zu Stunden
+                    currentStr = math.floor(current / 3600) .. "h"
+                    thresholdStr = math.floor(threshold / 3600) .. "h"
+                else
+                    currentStr = current
+                    thresholdStr = threshold
+                end
+                
+                progressText:SetText("|cffFFFFFF" .. currentStr .. "/" .. thresholdStr .. "|r")
+            end
+        end
         
         -- Datum wenn freigeschaltet
         if isUnlocked and unlockData then
@@ -1614,61 +1780,7 @@ function UI:UpdateMilestones()
             end
         end
         
-        -- Fortschrittsbalken für Kill-Meilensteine (wenn nicht freigeschaltet)
-        if not isUnlocked and m.type == "kills" and m.creatureType and m.threshold then
-            local KillStats = GDL:GetModule("KillStats")
-            if KillStats then
-                local currentKills = KillStats:GetKillCount(m.creatureType)
-                local threshold = m.threshold
-                
-                -- Wenn Ziel erreicht aber noch nicht freigeschaltet: Jetzt freischalten!
-                if currentKills >= threshold then
-                    -- Meilenstein sollte freigeschaltet werden
-                    local charKey = Milestones:GetCharacterKey()
-                    local charName = UnitName("player")
-                    local level = UnitLevel("player")
-                    Milestones:UnlockMilestone(m.id, charKey, charName, level, true)
-                    
-                    -- Zeige als erreicht an
-                    row:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.8)
-                    row:SetBackdropBorderColor(color[1], color[2], color[3], 0.9)
-                    icon:SetDesaturated(false)
-                    icon:SetAlpha(1)
-                    name:SetText("|cff00FF00[+]|r " .. m.name)
-                    
-                    -- Datum anzeigen
-                    local dateText = row:CreateFontString(nil, "OVERLAY")
-                    dateText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-                    dateText:SetPoint("BOTTOMRIGHT", -10, 8)
-                    dateText:SetText("|cff00AA00" .. date("%d.%m.%Y") .. "|r")
-                else
-                    -- Progress noch nicht erreicht - zeige Balken
-                    local progress = currentKills / threshold
-                    
-                    -- Progress Bar Background - kompakt unter der Beschreibung
-                    local barBg = row:CreateTexture(nil, "ARTWORK")
-                    barBg:SetSize(120, 8)
-                    barBg:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -4)
-                    barBg:SetColorTexture(0.1, 0.08, 0.05, 0.9)
-                    
-                    -- Progress Bar Fill
-                    if progress > 0 then
-                        local barFill = row:CreateTexture(nil, "OVERLAY")
-                        barFill:SetSize(math.max(120 * progress, 1), 8)
-                        barFill:SetPoint("LEFT", barBg, "LEFT", 0, 0)
-                        barFill:SetColorTexture(color[1], color[2], color[3], 1)
-                    end
-                    
-                    -- Progress Text - rechts neben der Leiste
-                    local progressText = row:CreateFontString(nil, "OVERLAY")
-                    progressText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
-                    progressText:SetPoint("LEFT", barBg, "RIGHT", 5, 0)
-                    progressText:SetText("|cffDDDDDD" .. currentKills .. "/" .. threshold .. "|r")
-                end
-            end
-        end
-        
-        y = y - (rowHeight + 5)  -- Dynamische Höhe + Abstand
+        y = y - (rowHeight + 5)
     end
     
     content:SetHeight(math.abs(y) + 30)
@@ -1763,7 +1875,8 @@ function UI:CreateTitlesWindow()
     local infoText = f:CreateFontString(nil, "OVERLAY")
     infoText:SetFont("Fonts\\FRIZQT__.TTF", 9, "")
     infoText:SetPoint("TOP", progressText, "BOTTOM", 0, -5)
-    infoText:SetText("|cff888888Titel sind für alle Gildenmitglieder mit dem Addon sichtbar!|r")
+    local titlesInfo = GetLocale() == "deDE" and "Titel sind für alle Gildenmitglieder mit dem Addon sichtbar!" or "Titles are visible to all guild members with the addon!"
+    infoText:SetText("|cff888888" .. titlesInfo .. "|r")
     
     -- Scroll-Bereich für Titel-Liste
     local scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
@@ -1866,17 +1979,21 @@ function UI:UpdateTitles()
                 self:SetBackdropColor(color[1] * 0.3, color[2] * 0.3, color[3] * 0.3, 0.9)
             end
             
+            local isDE = GetLocale() == "deDE"
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:ClearLines()
             GameTooltip:AddLine(t.name, color[1], color[2], color[3])
             GameTooltip:AddLine(t.desc, 1, 1, 1, true)
             GameTooltip:AddLine(" ")
             if t.requirement then
-                GameTooltip:AddLine("Benötigt: " .. t.requirement, 0.7, 0.7, 0.7)
+                local reqLabel = isDE and "Benoetigt: " or "Requires: "
+                GameTooltip:AddLine(reqLabel .. t.requirement, 0.7, 0.7, 0.7)
             end
-            GameTooltip:AddLine("Priorität: " .. (t.priority or 0), 0.5, 0.5, 0.5)
+            local prioLabel = isDE and "Prioritaet: " or "Priority: "
+            GameTooltip:AddLine(prioLabel .. (t.priority or 0), 0.5, 0.5, 0.5)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("Klicken zum Auswählen", 0, 1, 0)
+            local clickLabel = isDE and "Klicken zum Auswaehlen" or "Click to select"
+            GameTooltip:AddLine(clickLabel, 0, 1, 0)
             GameTooltip:Show()
         end)
         
