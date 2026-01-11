@@ -1,0 +1,45 @@
+## Interface: 11508, 11509, 11510, 30300, 30403, 40402
+## Interface-Classic: 11508
+## Interface-Wrath: 30300, 30403
+## Interface-Cata: 40402
+## Title: Das Buch der Gefallenen
+## Title-enUS: The Book of the Fallen
+## Title-ruRU: Книга Павших
+## Notes: Verfolgt Tode von Gildenmitgliedern im Hardcore-Modus
+## Notes-enUS: Tracks guild member deaths in Hardcore mode
+## Notes-ruRU: Отслеживает смерти членов гильдии в режиме Hardcore
+## Author: PsYke86
+## Version: 5.9.7
+## SavedVariables: GuildDeathLogDB
+## OptionalDeps: Deathlog
+
+# Core - Compat first!
+Compat.lua
+GuildDeathLog.lua
+
+# Modules - Sync muss frueh geladen werden!
+Modules/Locale.lua
+Modules/Guild.lua
+Modules/Sync.lua
+Modules/LastWords.lua
+Modules/KillerTracker.lua
+Modules/Condolences.lua
+Modules/Milestones.lua
+Modules/KillStats.lua
+Modules/Titles.lua
+Modules/Statistics.lua
+Modules/HallOfFame.lua
+Modules/Export.lua
+Modules/Deathlog.lua
+Modules/MapMarkers.lua
+Modules/GuildTracker.lua
+Modules/Professions.lua
+Modules/Memorial.lua
+Modules/GuildStats.lua
+Modules/MinimapButton.lua
+Modules/Debug.lua
+Modules/GuildRules.lua
+Modules/Calendar.lua
+Modules/GuildLeader.lua
+Modules/BookUI.lua
+Modules/UI.lua
