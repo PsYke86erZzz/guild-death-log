@@ -16,11 +16,12 @@ local Sync = {}
 
 local ADDON_PREFIX = "GDLSync"
 local COMM_DELIM = "|"
-local COMM = {PING="PING", PONG="PONG", DEATH="DEATH", SYNC_REQ="SYNCREQ", SYNC_DATA="SYNCDAT"}
+local COMM = {PING="PING", PONG="PONG", DEATH="DEATH", SYNC_REQ="SYNCREQ", SYNC_DATA="SYNCDAT", DELETE="DELETE"}
 
 local syncedUsers = {}
 local lastSyncRequest = 0
 local recentDeaths = {}
+local deletedDeaths = {}  -- Blacklist für gelöschte Einträge
 
 -- WICHTIG: Prefix SOFORT registrieren beim Laden!
 C_ChatInfo.RegisterAddonMessagePrefix(ADDON_PREFIX)
@@ -45,31 +46,45 @@ function Sync:Initialize()
     GDL:Debug("Sync: " .. self:CountTable(syncedUsers) .. " gespeicherte User geladen")
     
     -- ════════════════════════════════════════════════════════
-    -- SYNC-TIMER: Sanfte Synchronisation (nicht mehr aggressiv!)
+    -- SYNC-TIMER: Verbesserte Synchronisation
     -- ════════════════════════════════════════════════════════
     
-    -- Ping alle 5 Minuten (war 90 Sekunden - viel zu oft!)
-    C_Timer.NewTicker(300, function() 
+    -- Ping alle 3 Minuten (reduziert von 5)
+    C_Timer.NewTicker(180, function() 
         if IsInGuild() then 
             self:SendPing() 
         end
     end)
     
-    -- Automatischer Sync alle 15 Minuten (war 5 Minuten)
-    C_Timer.NewTicker(900, function() 
+    -- FIX: Automatischer Sync alle 5 Minuten statt 15!
+    -- Das stellt sicher dass alle Tode synchronisiert werden
+    C_Timer.NewTicker(300, function() 
         if IsInGuild() then
             self:RequestFullSync()
         end
     end)
     
-    -- KEIN automatischer Push mehr! Nur auf Anfrage.
-    -- (War alle 3 Minuten - das hat den Chat gespammt)
+    -- FIX: Proaktiver Push alle 10 Minuten
+    -- Sendet unsere neuesten Tode an alle
+    C_Timer.NewTicker(600, function()
+        if IsInGuild() then
+            self:BroadcastRecentDeaths(30)
+        end
+    end)
     
-    -- Beim Start: Nur EINMAL sync nach 10 Sekunden
-    C_Timer.After(10, function() 
+    -- Beim Start: Sync nach 5 Sekunden (schneller als vorher)
+    C_Timer.After(5, function() 
         if IsInGuild() then 
             self:SendPing()
             self:RequestFullSync() 
+        end
+    end)
+    
+    -- FIX: Zusaetzlicher Sync nach 30 Sekunden fuer Spieler die spaeter online kommen
+    C_Timer.After(30, function()
+        if IsInGuild() then
+            self:RequestFullSync()
+            self:BroadcastRecentDeaths(50)  -- Teile unsere Tode
         end
     end)
     
@@ -182,6 +197,9 @@ function Sync:HandleAddonMessage(message, sender)
         
     elseif cmd == COMM.SYNC_DATA or cmd == "SYNCDAT" then
         self:HandleSyncData(sender, data)
+        
+    elseif cmd == COMM.DELETE or cmd == "DELETE" then
+        self:HandleDeleteSync(sender, data)
     end
 end
 
@@ -364,6 +382,13 @@ function Sync:HandleDeath(sender, data)
 end
 
 function Sync:ProcessIncomingDeath(death, source, isSilent)
+    -- Blacklist-Check: Wurde dieser Eintrag gelöscht?
+    local deleteKey = (death.name or "") .. ":" .. (death.timestamp or 0)
+    if deletedDeaths[deleteKey] then
+        GDL:Debug("Geloeschter Eintrag ignoriert: " .. (death.name or "?"))
+        return
+    end
+    
     if self:IsDuplicate(death) then 
         GDL:Debug("Duplikat ignoriert: " .. (death.name or "?"))
         return 
@@ -593,6 +618,66 @@ function Sync:HandleSyncData(sender, data)
     end
 end
 
+-- ══════════════════════════════════════════════════════════════
+-- DELETE SYNC - Löschungen an Gildenmitglieder senden
+-- ══════════════════════════════════════════════════════════════
+
+function Sync:BroadcastDelete(deathName, deathTimestamp)
+    if not IsInGuild() then return end
+    
+    -- Zur lokalen Blacklist hinzufügen (verhindert Re-Sync)
+    local deleteKey = (deathName or "") .. ":" .. (deathTimestamp or 0)
+    deletedDeaths[deleteKey] = time()
+    C_Timer.After(86400, function() deletedDeaths[deleteKey] = nil end)
+    
+    -- Format: DELETE|name|timestamp
+    local msg = COMM.DELETE .. COMM_DELIM .. (deathName or "") .. COMM_DELIM .. (deathTimestamp or 0)
+    local success = C_ChatInfo.SendAddonMessage(ADDON_PREFIX, msg, "GUILD")
+    
+    if success then
+        GDL:Debug("-> DELETE gesendet: " .. deathName)
+    end
+end
+
+function Sync:HandleDeleteSync(sender, data)
+    if not data then return end
+    
+    local name, timestamp = strsplit(COMM_DELIM, data)
+    timestamp = tonumber(timestamp) or 0
+    
+    if not name or name == "" then return end
+    
+    GDL:Debug("<- DELETE von " .. sender .. ": " .. name)
+    
+    -- Zur Blacklist hinzufügen (verhindert Re-Sync)
+    local deleteKey = name .. ":" .. timestamp
+    deletedDeaths[deleteKey] = time()
+    -- Blacklist nach 24 Stunden aufräumen
+    C_Timer.After(86400, function() deletedDeaths[deleteKey] = nil end)
+    
+    -- Finde und lösche den Eintrag lokal
+    local guildData = GDL:GetGuildData()
+    if not guildData or not guildData.deaths then return end
+    
+    for i = #guildData.deaths, 1, -1 do
+        local death = guildData.deaths[i]
+        -- Match by name AND timestamp (falls vorhanden) oder nur name
+        if death.name == name then
+            if timestamp == 0 or (death.timestamp and math.abs(death.timestamp - timestamp) < 60) then
+                table.remove(guildData.deaths, i)
+                GDL:Print("|cff888888" .. name .. " wurde durch " .. sender .. " geloescht.|r")
+                
+                -- UI aktualisieren
+                local UI = GDL:GetModule("UI")
+                if UI and UI.mainFrame and UI.mainFrame:IsShown() then
+                    UI:UpdateChronicle()
+                end
+                break
+            end
+        end
+    end
+end
+
 function Sync:SendPendingSync()
     if not IsInGuild() then return end
     local guildData = GDL:GetGuildData()
@@ -707,13 +792,6 @@ function Sync:RecordLocalDeath(deathData)
     local Professions = GDL:GetModule("Professions")
     if Professions and Professions.frame and Professions.frame:IsShown() then
         Professions:UpdateWindow()
-    end
-    
-    -- Achievements triggern (v4.0)
-    local Achievements = GDL:GetModule("Achievements")
-    if Achievements then
-        Achievements:OnGuildDeath()
-        Achievements:OnDeathWitnessed()
     end
     
     -- Sound & Overlay für lokale Tode

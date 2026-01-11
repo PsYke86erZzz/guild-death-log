@@ -746,7 +746,10 @@ function Milestones:PLAYER_LEVEL_UP(newLevel)
     local charKey = self:GetCharacterKey()
     local charName = UnitName("player")
     
-    GDL:Print("|cff00FF00" .. L.LEVEL_UP .. "|r " .. charName .. " " .. L.IS_NOW_LEVEL .. " " .. tostring(newLevel))
+    -- NUR anzeigen wenn Setting aktiv ist
+    if GuildDeathLogDB.settings.milestoneAnnounce ~= false then
+        GDL:Print("|cff00FF00" .. L.LEVEL_UP .. "|r " .. charName .. " " .. L.IS_NOW_LEVEL .. " " .. tostring(newLevel))
+    end
     
     for _, m in ipairs(MILESTONE_DEFS) do
         if m.type == "level" and m.threshold == newLevel then
@@ -1103,7 +1106,10 @@ function Milestones:UnlockMilestone(milestoneId, charKey, charName, charLevel, s
     GuildDeathLogDB.guildMilestones[charKey][milestoneId] = charData.unlocked[milestoneId]
     
     if not silent then
-        self:ShowMilestonePopup(milestone, charName)
+        -- NUR Popup zeigen wenn Setting aktiv ist
+        if GuildDeathLogDB.settings.milestonePopup ~= false then
+            self:ShowMilestonePopup(milestone, charName)
+        end
         local Titles = GDL:GetModule("Titles")
         if Titles and Titles.OnMilestoneUnlocked then
             Titles:OnMilestoneUnlocked(milestoneId)
@@ -1154,7 +1160,10 @@ function Milestones:HandleMilestoneSync(message, sender)
         if mId and cName then
             local m = MILESTONE_BY_ID[mId]
             if m then
-                GDL:Print("|cffFFD100" .. cName .. "|r: |cff00FF00" .. m.name .. "|r")
+                -- NUR anzeigen wenn Setting aktiv ist
+                if GuildDeathLogDB.settings.milestoneAnnounce ~= false then
+                    GDL:Print("|cffFFD100" .. cName .. "|r: |cff00FF00" .. m.name .. "|r")
+                end
             end
         end
     end

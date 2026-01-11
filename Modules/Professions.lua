@@ -282,19 +282,20 @@ function Professions:BroadcastProfessions()
     end
     
     -- WICHTIG: Eigene Daten lokal speichern!
+    local currentTimestamp = time()
     guildProfessions[playerName] = {
         prof1 = prof1Data,
         prof2 = prof2Data,
         classId = classId or 0,
         level = level or 1,
         spec = spec or "",
-        timestamp = time()
+        timestamp = currentTimestamp
     }
     
     -- In DB speichern
     GuildDeathLogDB.professions = guildProfessions
     
-    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec
+    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec|timestamp
     local parts = {"PROF"}
     
     table.insert(parts, prof1Data.name)
@@ -306,6 +307,7 @@ function Professions:BroadcastProfessions()
     table.insert(parts, classId or 0)
     table.insert(parts, level or 1)
     table.insert(parts, spec or "")
+    table.insert(parts, currentTimestamp)  -- NEU: Timestamp mitsenden!
     
     local data = table.concat(parts, "|")
     C_ChatInfo.SendAddonMessage(ADDON_PREFIX, data, "GUILD")
@@ -341,7 +343,7 @@ function Professions:HandleMessage(message, sender)
     local parts = {strsplit("|", message)}
     if parts[1] ~= "PROF" then return end
     
-    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec
+    -- Format: PROF|prof1Name|prof1Skill|prof1Max|prof2Name|prof2Skill|prof2Max|classId|level|spec|timestamp
     local prof1Name = parts[2] or ""
     local prof1Skill = tonumber(parts[3]) or 0
     local prof1Max = tonumber(parts[4]) or 0
@@ -351,15 +353,29 @@ function Professions:HandleMessage(message, sender)
     local classId = tonumber(parts[8]) or 0
     local level = tonumber(parts[9]) or 1
     local spec = parts[10] or ""
+    local msgTimestamp = tonumber(parts[11]) or time()  -- NEU: Timestamp aus Nachricht
     
-    -- Speichern
+    -- FIX: Timestamp-basierte Konfliktloesung!
+    -- Nur akzeptieren wenn:
+    -- 1. Noch keine Daten fuer diesen Spieler vorhanden ODER
+    -- 2. Die neuen Daten neuer sind (hoeherer Timestamp)
+    local existingData = guildProfessions[senderName]
+    if existingData and existingData.timestamp then
+        if msgTimestamp < existingData.timestamp then
+            -- Die empfangenen Daten sind AELTER als unsere - ignorieren
+            GDL:Debug("Professions: Ignoriere aeltere Daten von " .. senderName)
+            return
+        end
+    end
+    
+    -- Speichern (nur wenn neuer oder nicht vorhanden)
     guildProfessions[senderName] = {
         prof1 = {name = prof1Name, skill = prof1Skill, max = prof1Max},
         prof2 = {name = prof2Name, skill = prof2Skill, max = prof2Max},
         classId = classId,
         level = level,
         spec = spec,
-        timestamp = time()
+        timestamp = msgTimestamp  -- Verwende den Timestamp aus der Nachricht
     }
     
     -- In DB speichern
@@ -579,11 +595,20 @@ function Professions:UpdateWindow()
     if not self.frame then return end
     local f = self.frame
     
-    -- Clear old entries
-    for _, child in ipairs({f.scrollChild:GetChildren()}) do
-        child:Hide()
-        child:SetParent(nil)
+    -- PERFORMANCE FIX: Frame Pooling statt ständig neue Frames erstellen!
+    -- Initialisiere Pool wenn nicht vorhanden
+    if not self.rowPool then
+        self.rowPool = {}
+        self.activeRows = {}
     end
+    
+    -- Alle aktiven Rows zurueck in den Pool
+    for _, row in ipairs(self.activeRows) do
+        row:Hide()
+        row:ClearAllPoints()
+        table.insert(self.rowPool, row)
+    end
+    self.activeRows = {}
     
     -- Eigene Daten hinzufügen
     local myProfs = self:GetOwnProfessions()
@@ -644,8 +669,11 @@ function Professions:UpdateWindow()
         end
         
         if showEntry then
-            local row = self:CreateProfessionRow(f.scrollChild, name, data, y)
-            y = y - 46  -- Mehr Platz für zweizeilige Berufe
+            -- PERFORMANCE: Row aus Pool holen oder neue erstellen
+            local row = self:GetPooledRow(f.scrollChild)
+            self:UpdateProfessionRow(row, name, data, y)
+            table.insert(self.activeRows, row)
+            y = y - 46
             count = count + 1
         end
     end
@@ -657,12 +685,10 @@ function Professions:UpdateWindow()
     if f.filterButtons then
         for _, btn in ipairs(f.filterButtons) do
             if f.currentFilter == btn.filterName then
-                -- Aktiver Button - hervorgehoben
                 btn:SetBackdropColor(0.25, 0.18, 0.08, 1)
                 btn:SetBackdropBorderColor(0.8, 0.6, 0.2, 1)
                 btn.label:SetTextColor(1, 0.85, 0.5)
             else
-                -- Inaktiver Button - normal
                 btn:SetBackdropColor(0.15, 0.12, 0.08, 0.9)
                 btn:SetBackdropBorderColor(0.5, 0.4, 0.3, 0.8)
                 btn.label:SetTextColor(0.9, 0.8, 0.6)
@@ -671,85 +697,111 @@ function Professions:UpdateWindow()
     end
 end
 
-function Professions:CreateProfessionRow(parent, playerName, data, yOffset)
+-- PERFORMANCE: Wiederverwendbare Row aus Pool holen
+function Professions:GetPooledRow(parent)
+    local row
+    if #self.rowPool > 0 then
+        row = table.remove(self.rowPool)
+        row:SetParent(parent)
+    else
+        row = self:CreateProfessionRowFrame(parent)
+    end
+    row:Show()
+    return row
+end
+
+-- PERFORMANCE: Frame nur EINMAL erstellen, dann wiederverwenden
+function Professions:CreateProfessionRowFrame(parent)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetSize(400, 42)  -- Schmaler passend zum ScrollChild
+    row:SetSize(400, 42)
+    
+    -- Klassen-Icon
+    row.classIcon = row:CreateTexture(nil, "ARTWORK")
+    row.classIcon:SetSize(28, 28)
+    row.classIcon:SetPoint("LEFT", 4, 0)
+    
+    -- Online-Status Punkt
+    row.statusDot = row:CreateTexture(nil, "OVERLAY")
+    row.statusDot:SetSize(8, 8)
+    row.statusDot:SetPoint("BOTTOMRIGHT", row.classIcon, "BOTTOMRIGHT", 2, -2)
+    row.statusDot:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+    
+    -- Spielername
+    row.nameText = row:CreateFontString(nil, "OVERLAY")
+    row.nameText:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+    row.nameText:SetPoint("LEFT", row.classIcon, "RIGHT", 6, 4)
+    
+    -- Level + Spec
+    row.infoText = row:CreateFontString(nil, "OVERLAY")
+    row.infoText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    row.infoText:SetPoint("TOPLEFT", row.nameText, "BOTTOMLEFT", 0, -1)
+    
+    -- Berufe rechts
+    row.prof1Text = row:CreateFontString(nil, "OVERLAY")
+    row.prof1Text:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    row.prof1Text:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -6)
+    row.prof1Text:SetJustifyH("RIGHT")
+    row.prof1Text:SetWidth(160)
+    
+    row.prof2Text = row:CreateFontString(nil, "OVERLAY")
+    row.prof2Text:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
+    row.prof2Text:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -20)
+    row.prof2Text:SetJustifyH("RIGHT")
+    row.prof2Text:SetWidth(160)
+    
+    return row
+end
+
+-- PERFORMANCE: Existierenden Frame nur UPDATEN, nicht neu erstellen
+function Professions:UpdateProfessionRow(row, playerName, data, yOffset)
     row:SetPoint("TOPLEFT", 0, yOffset)
     
     -- Klassenfarbe
     local col = self:GetClassColor(data.classId)
     
     -- Klassen-Icon
-    local classIcon = row:CreateTexture(nil, "ARTWORK")
-    classIcon:SetSize(28, 28)
-    classIcon:SetPoint("LEFT", 4, 0)
     local iconPath = self:GetClassIcon(data.classId)
-    classIcon:SetTexture(iconPath)
+    row.classIcon:SetTexture(iconPath)
     
-    -- Online-Status Punkt (kleine grüne/graue Ecke)
+    -- Online-Status
     local isOnline = (time() - (data.timestamp or 0)) < STALE_TIMEOUT
-    local statusDot = row:CreateTexture(nil, "OVERLAY")
-    statusDot:SetSize(8, 8)
-    statusDot:SetPoint("BOTTOMRIGHT", classIcon, "BOTTOMRIGHT", 2, -2)
-    statusDot:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
     if isOnline then
-        statusDot:SetVertexColor(0, 1, 0, 1)  -- Grün
+        row.statusDot:SetVertexColor(0, 1, 0, 1)
     else
-        statusDot:SetVertexColor(0.4, 0.4, 0.4, 1)  -- Grau
+        row.statusDot:SetVertexColor(0.4, 0.4, 0.4, 1)
     end
     
     -- Spielername in Klassenfarbe
-    local nameText = row:CreateFontString(nil, "OVERLAY")
-    nameText:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-    nameText:SetPoint("LEFT", classIcon, "RIGHT", 6, 4)
-    nameText:SetTextColor(col[1], col[2], col[3])
-    nameText:SetText(playerName)
+    row.nameText:SetTextColor(col[1], col[2], col[3])
+    row.nameText:SetText(playerName)
     
     -- Level + Spec
-    local infoText = row:CreateFontString(nil, "OVERLAY")
-    infoText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    infoText:SetPoint("TOPLEFT", nameText, "BOTTOMLEFT", 0, -1)
-    
     local specStr = ""
     if data.spec and data.spec ~= "" then
         specStr = " |cffBBBBBB" .. data.spec .. "|r"
     end
-    infoText:SetText("|cff999999Level " .. (data.level or "?") .. "|r" .. specStr)
+    row.infoText:SetText("|cff999999Level " .. (data.level or "?") .. "|r" .. specStr)
     
-    -- Berufe rechts - OHNE Scrollbar-Bereich
-    local prof1Text = row:CreateFontString(nil, "OVERLAY")
-    prof1Text:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    prof1Text:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -6)
-    prof1Text:SetJustifyH("RIGHT")
-    prof1Text:SetWidth(160)
-    
-    local prof2Text = row:CreateFontString(nil, "OVERLAY")
-    prof2Text:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    prof2Text:SetPoint("TOPRIGHT", row, "TOPRIGHT", 0, -20)
-    prof2Text:SetJustifyH("RIGHT")
-    prof2Text:SetWidth(160)
-    
+    -- Berufe
     if data.prof1 and data.prof1.name and data.prof1.name ~= "" then
         local skillCol = self:GetSkillColor(data.prof1.skill, data.prof1.max)
-        prof1Text:SetText(string.format("|cff%s%d|r |cffCCCCCC%s|r", skillCol, data.prof1.skill, data.prof1.name))
+        row.prof1Text:SetText(string.format("|cff%s%d|r |cffCCCCCC%s|r", skillCol, data.prof1.skill, data.prof1.name))
     else
-        prof1Text:SetText("")
+        row.prof1Text:SetText("")
     end
     
     if data.prof2 and data.prof2.name and data.prof2.name ~= "" then
         local skillCol = self:GetSkillColor(data.prof2.skill, data.prof2.max)
-        prof2Text:SetText(string.format("|cff%s%d|r |cffCCCCCC%s|r", skillCol, data.prof2.skill, data.prof2.name))
+        row.prof2Text:SetText(string.format("|cff%s%d|r |cffCCCCCC%s|r", skillCol, data.prof2.skill, data.prof2.name))
     else
-        prof2Text:SetText("")
+        row.prof2Text:SetText("")
     end
     
     -- Keine Berufe?
     if (not data.prof1 or not data.prof1.name or data.prof1.name == "") and
        (not data.prof2 or not data.prof2.name or data.prof2.name == "") then
-        prof1Text:SetText("|cff666666- Keine Berufe -|r")
+        row.prof1Text:SetText("|cff666666- Keine Berufe -|r")
     end
-    
-    return row
 end
 
 -- Berufsnamen NICHT mehr kürzen - ausschreiben

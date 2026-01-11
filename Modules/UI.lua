@@ -37,7 +37,7 @@ function UI:GetClassIcon(classId) return CLASS_ICONS[classId] or "Interface\\Ico
 function UI:CreateChronicle()
     -- Hauptframe mit Schatten-Effekt
     local f = CreateFrame("Frame", "GDLChronicle", UIParent, "BackdropTemplate")
-    f:SetSize(500, 650)  -- Größer: 500x650
+    f:SetSize(500, 700)  -- GRÖSSER: 650 -> 700 für 4 Button-Reihen
     f:SetPoint("CENTER")
     f:SetFrameStrata("HIGH")
     f:SetFrameLevel(100)
@@ -169,7 +169,7 @@ function UI:CreateChronicle()
     -- Scroll Container
     local scrollContainer = CreateFrame("Frame", nil, f, "BackdropTemplate")
     scrollContainer:SetPoint("TOPLEFT", 22, -195)
-    scrollContainer:SetPoint("BOTTOMRIGHT", -22, 100)  -- Mehr Platz für Buttons
+    scrollContainer:SetPoint("BOTTOMRIGHT", -22, 125)  -- ANGEPASST: 100 -> 125 für 4 Button-Reihen
     scrollContainer:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -199,28 +199,28 @@ function UI:CreateChronicle()
     
     -- ═══ FOOTER MIT ZITAT ═══
     local footerLine = f:CreateTexture(nil, "ARTWORK")
-    footerLine:SetPoint("BOTTOMLEFT", 30, 95)
-    footerLine:SetPoint("BOTTOMRIGHT", -30, 95)
+    footerLine:SetPoint("BOTTOMLEFT", 30, 120)  -- ANGEPASST: 95 -> 120
+    footerLine:SetPoint("BOTTOMRIGHT", -30, 120)
     footerLine:SetHeight(1)
     footerLine:SetColorTexture(0.4, 0.3, 0.2, 0.5)
     
     f.quote = f:CreateFontString(nil, "OVERLAY")
     f.quote:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    f.quote:SetPoint("BOTTOM", 0, 78)
+    f.quote:SetPoint("BOTTOM", 0, 103)  -- ANGEPASST: 78 -> 103
     f.quote:SetWidth(420)
     f.quote:SetTextColor(0.45, 0.35, 0.25)
     f.quote:SetJustifyH("CENTER")
     
     -- ═══════════════════════════════════════════════════════════════
-    -- BUTTONS - 3 Reihen à 5 Buttons, einheitlich 90px breit
+    -- BUTTONS - 4 Reihen à 5 Buttons, einheitlich 90px breit
     -- ═══════════════════════════════════════════════════════════════
     local btnWidth = 90
     local btnSpacing = 4
     local totalWidth = (btnWidth * 5) + (btnSpacing * 4)  -- 470px
     local startX = -totalWidth / 2 + btnWidth / 2  -- Zentriert
     
-    -- Reihe 1 (oben)
-    local btnY1 = 68
+    -- Reihe 1 (oben) - ANGEPASST für 4 Reihen
+    local btnY1 = 95
     f.btnRefresh = self:CreateElegantButton(f, GDL:L("BTN_REFRESH"), startX + (btnWidth + btnSpacing) * 0, btnY1, function()
         local D = GDL:GetModule("Deathlog") if D then D:ScanData() end
         self:UpdateChronicle()
@@ -242,8 +242,8 @@ function UI:CreateChronicle()
         local D = GDL:GetModule("Debug") if D then D:ShowWindow() end
     end)
     
-    -- Reihe 2 (mitte)
-    local btnY2 = 42
+    -- Reihe 2
+    local btnY2 = 69
     f.btnHallOfFame = self:CreateElegantButton(f, GDL:L("BTN_HALL_OF_FAME"), startX + (btnWidth + btnSpacing) * 0, btnY2, function()
         self:ShowHallOfFame()
     end)
@@ -267,8 +267,8 @@ function UI:CreateChronicle()
         end
     end)
     
-    -- Reihe 3 (unten) - Neue Features
-    local btnY3 = 20
+    -- Reihe 3
+    local btnY3 = 43
     f.btnTitles = self:CreateElegantButton(f, GDL:L("BTN_TITLES"), startX + (btnWidth + btnSpacing) * 0, btnY3, function()
         self:ToggleTitles()
     end)
@@ -289,9 +289,8 @@ function UI:CreateChronicle()
         local Cal = GDL:GetModule("Calendar") if Cal then Cal:Toggle() end
     end)
     
-    -- ═══ GEHEIMER GILDENLEITER BUTTON (nur für Offiziere!) ═══
-    -- Reihe 4 - nur sichtbar wenn Offizier
-    local btnY4 = -2
+    -- ═══ GILDENLEITER BUTTON (Reihe 4 - nur für Offiziere!) ═══
+    local btnY4 = 17
     f.btnLeader = self:CreateElegantButton(f, GDL:L("BTN_LEADER"), startX + (btnWidth + btnSpacing) * 2, btnY4, function()
         local GL = GDL:GetModule("GuildLeader") if GL then GL:Toggle() end
     end)
@@ -429,8 +428,12 @@ function UI:UpdateChronicle()
     local guildData = GDL:GetGuildData()
     local deaths = guildData and guildData.deaths or {}
     
+    -- Sortierte Liste mit ORIGINAL-INDEX erstellen
     local sortedDeaths = {}
-    for _, d in ipairs(deaths) do table.insert(sortedDeaths, d) end
+    for originalIndex, d in ipairs(deaths) do 
+        d._originalIndex = originalIndex  -- Original-Index speichern!
+        table.insert(sortedDeaths, d) 
+    end
     table.sort(sortedDeaths, function(a, b) return (a.timestamp or 0) > (b.timestamp or 0) end)
     
     -- Statistiken berechnen
@@ -472,7 +475,8 @@ function UI:UpdateChronicle()
         for i, d in ipairs(sortedDeaths) do
             if i > 100 then break end
             
-            local entry = self:CreateDeathEntry(f.scrollChild, d, i)
+            -- Verwende den ORIGINAL-Index für's Löschen, nicht den sortierten Index!
+            local entry = self:CreateDeathEntry(f.scrollChild, d, d._originalIndex or i)
             entry:SetPoint("TOPLEFT", 5, scrollY)
             entry:SetPoint("TOPRIGHT", -5, scrollY)
             
@@ -729,14 +733,16 @@ function UI:DisplayOverlay(data)
     
     -- Daten setzen
     o.nameText:SetText(death.name)
+    o.nameText:SetTextColor(col[1], col[2], col[3])
+    
     o.classText:SetText("Level " .. (death.level or "?") .. " " .. GDL:GetClassName(death.classId))
-    o.classText:SetTextColor(col[1], col[2], col[3])
+    o.classText:SetTextColor(0.9, 0.8, 0.6)
+    
     o.classIcon:SetTexture(self:GetClassIcon(death.classId))
-    o.accent:SetColorTexture(col[1], col[2], col[3], 1)
     
     local zone = death.zone
     if zone and zone ~= "" then
-        o.zoneText:SetText("† " .. zone)
+        o.zoneText:SetText(zone)
     else
         o.zoneText:SetText("")
     end
@@ -744,8 +750,7 @@ function UI:DisplayOverlay(data)
     -- Killer Info (v4.0)
     local killer = death.killerName or death.killer
     if killer and killer ~= "" and killer ~= "Unknown" then
-        local killerLabel = GetLocale() == "deDE" and "Getoetet von: " or "Killed by: "
-        o.killerText:SetText(killerLabel .. killer)
+        o.killerText:SetText("Getoetet von: " .. killer)
         o.killerText:Show()
     else
         o.killerText:SetText("")
@@ -755,9 +760,8 @@ function UI:DisplayOverlay(data)
     -- LastWords (v4.0)
     local lastWords = death.lastWords
     if lastWords and lastWords ~= "" then
-        -- Max 60 Zeichen, mit "..." wenn länger
-        if #lastWords > 60 then
-            lastWords = lastWords:sub(1, 57) .. "..."
+        if #lastWords > 80 then
+            lastWords = lastWords:sub(1, 77) .. "..."
         end
         o.lastWordsText:SetText('"' .. lastWords .. '"')
         o.lastWordsText:Show()
@@ -766,26 +770,40 @@ function UI:DisplayOverlay(data)
         o.lastWordsText:Hide()
     end
     
-    -- Sounds
-    PlaySound(8959, "Master")
-    C_Timer.After(0.15, function() PlaySound(SOUNDKIT.RAID_WARNING, "Master") end)
+    -- ═══ EPISCHER SOUND ═══
+    PlaySound(8959, "Master")  -- Epischer Death Sound
+    C_Timer.After(0.15, function() 
+        PlaySound(SOUNDKIT.RAID_WARNING, "Master")  -- Raid Warning als Echo
+    end)
     
-    -- Show directly - no animation that resets alpha
-    o:SetAlpha(1)
+    -- Show with epic animation
+    o:SetAlpha(0)
     o:Show()
     
-    -- Hide after 8 seconds with fade
-    o.hideTimer = C_Timer.NewTimer(8, function()
-        -- Manuelles Fade-Out über OnUpdate
+    -- Fade In
+    local fadeInStart = GetTime()
+    local fadeInDuration = 0.3
+    o:SetScript("OnUpdate", function(self, elapsed)
+        local progress = (GetTime() - fadeInStart) / fadeInDuration
+        if progress >= 1 then
+            self:SetScript("OnUpdate", nil)
+            self:SetAlpha(1)
+        else
+            self:SetAlpha(progress)
+        end
+    end)
+    
+    -- Hide after 10 seconds with fade
+    o.hideTimer = C_Timer.NewTimer(10, function()
         local fadeStart = GetTime()
-        local fadeDuration = 1.0
+        local fadeDuration = 1.5
         o:SetScript("OnUpdate", function(self, elapsed)
             local progress = (GetTime() - fadeStart) / fadeDuration
             if progress >= 1 then
                 self:SetScript("OnUpdate", nil)
                 self:Hide()
                 self:SetAlpha(1)
-                C_Timer.After(0.2, function() UI:ShowNextOverlay() end)
+                C_Timer.After(0.3, function() UI:ShowNextOverlay() end)
             else
                 self:SetAlpha(1 - progress)
             end
@@ -794,113 +812,171 @@ function UI:DisplayOverlay(data)
 end
 
 function UI:CreateOverlay()
-    local o = CreateFrame("Frame", "GDLDeathOverlay", UIParent, "BackdropTemplate")
-    o:SetSize(340, 110)
+    -- ═══════════════════════════════════════════════════════════════════
+    -- EPISCHES TODES-POPUP mit Custom-Textur
+    -- Original-Bild: 1536x1024 (Verhältnis 3:2)
+    -- 
+    -- PIXEL-ANALYSE des Originals:
+    -- - Header "Todesmeldung" + "Guild Death Log": 0-225px (22%)
+    -- - Dunkler Inhaltsbereich: 225-920px (68%)
+    -- - Unterer Rahmen: 920-1024px (10%)
+    --
+    -- Bei 460x307 Popup:
+    -- - Header endet bei: ~67px von oben
+    -- - Dunkler Bereich: 67-275px (208px hoch)
+    -- - Mitte des dunklen Bereichs: ~171px von oben
+    -- ═══════════════════════════════════════════════════════════════════
+    
+    local baseWidth, baseHeight = 460, 307
+    
+    local o = CreateFrame("Frame", "GDLDeathOverlay", UIParent)
+    o:SetSize(baseWidth, baseHeight)
     o:SetFrameStrata("FULLSCREEN_DIALOG")
+    o:SetFrameLevel(500)
     o:Hide()
     
-    -- Skalierung anwenden
+    -- Skalierung laden
     local scale = GuildDeathLogDB.settings.overlayScale or 1.0
     o:SetScale(scale)
+    o.currentScale = scale
     
-    -- Position laden oder Standard
+    -- Position laden
     local pos = GuildDeathLogDB.settings.overlayPosition
     if pos and pos.point then
         o:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
     else
-        o:SetPoint("TOP", 0, -100)
+        o:SetPoint("TOP", 0, -80)
     end
     
-    -- Verschiebbar machen
+    -- ═══ CUSTOM TEXTUR ALS HINTERGRUND ═══
+    local bgTexture = o:CreateTexture(nil, "BACKGROUND")
+    bgTexture:SetAllPoints()
+    bgTexture:SetTexture("Interface\\AddOns\\GuildDeathLog\\Textures\\DeathPopup.tga")
+    o.bgTexture = bgTexture
+    
+    -- ═══ VERSCHIEBEN & SKALIEREN ═══
     o:SetMovable(true)
     o:EnableMouse(true)
     o:RegisterForDrag("LeftButton")
-    o:SetScript("OnDragStart", function(self)
-        self:StartMoving()
-    end)
-    o:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        local point, _, relPoint, x, y = self:GetPoint()
-        GuildDeathLogDB.settings.overlayPosition = {
-            point = point, relPoint = relPoint, x = x, y = y
-        }
-    end)
+    
+    local isDragging = false
+    local isScaling = false
+    local startX, startY, startScale
+    
     o:SetScript("OnMouseDown", function(self, button)
-        if button == "RightButton" then self:Hide() end
+        if button == "RightButton" then 
+            if self.hideTimer then self.hideTimer:Cancel() end
+            self:Hide()
+            C_Timer.After(0.2, function() UI:ShowNextOverlay() end)
+        elseif button == "LeftButton" then
+            if IsShiftKeyDown() then
+                isScaling = true
+                isDragging = false
+                startX, startY = GetCursorPosition()
+                startScale = self.currentScale or 1.0
+                self:SetScript("OnUpdate", function(self)
+                    if isScaling then
+                        local curX, curY = GetCursorPosition()
+                        local deltaY = (curY - startY) / 100
+                        local newScale = math.max(0.5, math.min(2.5, startScale + deltaY))
+                        self:SetScale(newScale)
+                        self.currentScale = newScale
+                        if self.scaleText then
+                            self.scaleText:SetText(math.floor(newScale * 100) .. "%")
+                            self.scaleText:Show()
+                        end
+                    end
+                end)
+            else
+                isDragging = true
+                isScaling = false
+                self:StartMoving()
+            end
+        end
     end)
     
-    -- Dunkler eleganter Hintergrund
-    o:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    o:SetBackdropColor(0.08, 0.05, 0.03, 0.95)
-    o:SetBackdropBorderColor(0.4, 0.3, 0.2, 1)
+    o:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" then
+            if isScaling then
+                isScaling = false
+                self:SetScript("OnUpdate", nil)
+                GuildDeathLogDB.settings.overlayScale = self.currentScale
+                if self.scaleText then
+                    C_Timer.After(1, function()
+                        if self.scaleText then self.scaleText:Hide() end
+                    end)
+                end
+            end
+            if isDragging then
+                isDragging = false
+                self:StopMovingOrSizing()
+                local point, _, relPoint, x, y = self:GetPoint()
+                GuildDeathLogDB.settings.overlayPosition = {
+                    point = point, relPoint = relPoint, x = x, y = y
+                }
+            end
+        end
+    end)
     
-    -- Rote Linie oben (Todesmarkierung)
-    local topLine = o:CreateTexture(nil, "ARTWORK")
-    topLine:SetPoint("TOPLEFT", 8, -8)
-    topLine:SetPoint("TOPRIGHT", -8, -8)
-    topLine:SetHeight(2)
-    topLine:SetColorTexture(0.6, 0.1, 0.1, 0.9)
+    -- Skalierungs-Anzeige
+    local scaleText = o:CreateFontString(nil, "OVERLAY")
+    scaleText:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+    scaleText:SetPoint("BOTTOM", 0, -20)
+    scaleText:SetTextColor(1, 0.8, 0.3)
+    scaleText:Hide()
+    o.scaleText = scaleText
     
-    -- Klassenfarben-Akzent links
-    o.accent = o:CreateTexture(nil, "ARTWORK")
-    o.accent:SetPoint("TOPLEFT", 8, -12)
-    o.accent:SetPoint("BOTTOMLEFT", 8, 8)
-    o.accent:SetWidth(3)
+    -- ═══════════════════════════════════════════════════════════════════
+    -- INHALT - ZENTRIERT IM DUNKLEN BEREICH
+    -- Dunkler Bereich bei 460x307: ca. Y=-70 bis Y=-265
+    -- MITTE des dunklen Bereichs: ca. Y=-165
+    -- ═══════════════════════════════════════════════════════════════════
     
-    -- GROSSES Totenkopf-Symbol links (statt Klassen-Icon)
-    local deathIcon = o:CreateTexture(nil, "OVERLAY")
-    deathIcon:SetSize(48, 48)
-    deathIcon:SetPoint("LEFT", 18, 5)
-    deathIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8") -- Totenkopf
-    deathIcon:SetAlpha(0.85)
+    -- ═══ KLASSEN-ICON ═══
+    o.classIcon = o:CreateTexture(nil, "ARTWORK")
+    o.classIcon:SetSize(48, 48)
+    o.classIcon:SetPoint("TOP", -145, -135)  -- Weiter links (war -125)
     
-    -- Kleines Klassen-Icon rechts vom Totenkopf
-    o.classIcon = o:CreateTexture(nil, "OVERLAY")
-    o.classIcon:SetSize(20, 20)
-    o.classIcon:SetPoint("BOTTOMRIGHT", deathIcon, "BOTTOMRIGHT", 6, -4)
-    
-    -- NAME (gross und golden)
+    -- ═══ NAME ═══
     o.nameText = o:CreateFontString(nil, "OVERLAY")
-    o.nameText:SetFont("Fonts\\MORPHEUS.TTF", 20, "")
-    o.nameText:SetPoint("TOPLEFT", deathIcon, "TOPRIGHT", 12, 2)
-    o.nameText:SetTextColor(1, 0.85, 0.4)
+    o.nameText:SetFont("Fonts\\MORPHEUS.TTF", 24, "OUTLINE")
+    o.nameText:SetPoint("TOP", 0, -140)  -- Jetzt mittig (X=0 statt 20)
+    o.nameText:SetWidth(300)
+    o.nameText:SetJustifyH("CENTER")
+    o.nameText:SetShadowOffset(2, -2)
+    o.nameText:SetShadowColor(0, 0, 0, 1)
     
-    -- Level & Class
+    -- ═══ LEVEL & KLASSE ═══
     o.classText = o:CreateFontString(nil, "OVERLAY")
-    o.classText:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-    o.classText:SetPoint("TOPLEFT", o.nameText, "BOTTOMLEFT", 0, -2)
+    o.classText:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+    o.classText:SetPoint("TOP", o.nameText, "BOTTOM", 0, -6)
+    o.classText:SetWidth(340)
+    o.classText:SetJustifyH("CENTER")
+    o.classText:SetShadowOffset(1, -1)
     
-    -- Zone + Killer in einer Zeile
+    -- ═══ ZONE ═══
     o.zoneText = o:CreateFontString(nil, "OVERLAY")
-    o.zoneText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    o.zoneText:SetPoint("TOPLEFT", o.classText, "BOTTOMLEFT", 0, -2)
-    o.zoneText:SetTextColor(0.6, 0.6, 0.6)
+    o.zoneText:SetFont("Fonts\\FRIZQT__.TTF", 13, "")
+    o.zoneText:SetPoint("TOP", o.classText, "BOTTOM", 0, -5)
+    o.zoneText:SetWidth(340)
+    o.zoneText:SetJustifyH("CENTER")
+    o.zoneText:SetTextColor(0.8, 0.8, 0.8)
     
-    -- Killer
+    -- ═══ KILLER ═══
     o.killerText = o:CreateFontString(nil, "OVERLAY")
-    o.killerText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    o.killerText:SetPoint("TOPLEFT", o.zoneText, "BOTTOMLEFT", 0, -1)
-    o.killerText:SetTextColor(0.9, 0.4, 0.4)
+    o.killerText:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    o.killerText:SetPoint("TOP", o.zoneText, "BOTTOM", 0, -4)
+    o.killerText:SetWidth(340)
+    o.killerText:SetJustifyH("CENTER")
+    o.killerText:SetTextColor(0.9, 0.3, 0.3)
     
-    -- LastWords (unten, kursiv-style)
+    -- ═══ LETZTE WORTE ═══
     o.lastWordsText = o:CreateFontString(nil, "OVERLAY")
-    o.lastWordsText:SetFont("Fonts\\FRIZQT__.TTF", 10, "")
-    o.lastWordsText:SetPoint("BOTTOMLEFT", 18, 10)
-    o.lastWordsText:SetPoint("BOTTOMRIGHT", -12, 10)
-    o.lastWordsText:SetTextColor(0.7, 0.7, 0.5)
-    o.lastWordsText:SetJustifyH("LEFT")
-    
-    -- Dezenter Hinweis (nur kleine Punkte)
-    local moveHint = o:CreateFontString(nil, "OVERLAY")
-    moveHint:SetFont("Fonts\\FRIZQT__.TTF", 8, "")
-    moveHint:SetPoint("BOTTOMRIGHT", -10, 3)
-    moveHint:SetText("|cff444444...|r")
-    moveHint:SetAlpha(0.5)
+    o.lastWordsText:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+    o.lastWordsText:SetPoint("BOTTOM", 0, 38)
+    o.lastWordsText:SetWidth(380)
+    o.lastWordsText:SetTextColor(0.8, 0.75, 0.6)
+    o.lastWordsText:SetJustifyH("CENTER")
     
     self.overlay = o
 end
@@ -916,7 +992,7 @@ end
 
 function UI:CreateSettings()
     local s = CreateFrame("Frame", "GDLSettings", UIParent, "BackdropTemplate")
-    s:SetSize(300, 400)  -- Angepasst für aktuelle Optionen
+    s:SetSize(300, 460)  -- Groesser fuer mehr Optionen
     s:SetPoint("CENTER", UIParent, "CENTER", 450, 350)  -- Rechts-ganz-oben (cascade)
     s:SetFrameStrata("DIALOG")
     s:SetFrameLevel(110)
@@ -956,6 +1032,8 @@ function UI:CreateSettings()
         {isDE and "Karten-Markierungen (Tode)" or "Map markers (deaths)", "mapMarkers"}, 
         {isDE and "Gilden-Karte (Live-Positionen)" or "Guild map (live positions)", "guildTracker"},
         {isDE and "Titel auf Nameplates" or "Show titles on nameplates", "nameplateTitles"},
+        {isDE and "Meilenstein-Nachrichten" or "Milestone chat messages", "milestoneAnnounce"},  -- NEU!
+        {isDE and "Meilenstein-Popup" or "Milestone popup", "milestonePopup"},                   -- NEU!
         {isDE and "Blizzard HC-Channel" or "Blizzard HC channel", "useBlizzardChannel"}, 
         {isDE and "Addon-Sync aktiv" or "Addon sync active", "useAddonChannel"}, 
         {isDE and "Debug-Ausgaben" or "Debug output", "debugPrint"}
@@ -970,7 +1048,8 @@ function UI:CreateSettings()
         label:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
         label:SetPoint("LEFT", cb, "RIGHT", 5, 0)
         label:SetText(opt[1])
-        label:SetTextColor(0.3, 0.25, 0.2)
+        -- FIX: Dunklere Farbe fuer bessere Lesbarkeit auf hellem Hintergrund
+        label:SetTextColor(0.15, 0.1, 0.05)
         
         cb.key = opt[2]
         cb:SetScript("OnClick", function(self) 

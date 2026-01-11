@@ -13,7 +13,7 @@ addon.GDL = GDL
 _G["GuildDeathLog"] = GDL
 _G["GuildDeathLogDB"] = _G["GuildDeathLogDB"] or {}
 
-GDL.version = "5.3.3"
+GDL.version = "5.5.6"
 GDL.addonName = addonName
 GDL.modules = {}
 GDL.currentGuildName = nil
@@ -94,9 +94,17 @@ function GDL:DeleteDeath(deathIndex)
     
     local death = guildData.deaths[deathIndex]
     local deathName = death and death.name or "Unbekannt"
+    local deathTimestamp = death and death.timestamp or 0
     
     table.remove(guildData.deaths, deathIndex)
     self:Print("|cffFF6666" .. deathName .. "|r wurde aus der Liste entfernt.")
+    
+    -- DELETE an andere Gildenmitglieder syncen!
+    local Sync = self:GetModule("Sync")
+    if Sync and Sync.BroadcastDelete then
+        Sync:BroadcastDelete(deathName, deathTimestamp)
+        self:Print("|cff888888Loeschung wird an Gildenmitglieder gesendet...|r")
+    end
     
     -- UI aktualisieren
     local UI = self:GetModule("UI")
@@ -136,11 +144,13 @@ function GDL:InitDB()
     GuildDeathLogDB.adminPassword = GuildDeathLogDB.adminPassword or nil -- Gildenleiter-Passwort
     
     -- Version Check fuer Migration
-    local currentVersion = "5.3.3"
+    local currentVersion = "5.5.6"
     local savedVersion = GuildDeathLogDB.addonVersion or "0"
     
-    -- WICHTIG: Bei Update alle Settings auf AN setzen!
-    if savedVersion ~= currentVersion then
+    -- BUG FIX: Settings NICHT mehr ueberschreiben bei Update!
+    -- Nur bei komplett neuer Installation (Version "0") Defaults setzen
+    if savedVersion == "0" then
+        -- Erste Installation - Defaults setzen
         GuildDeathLogDB.settings.announce = true
         GuildDeathLogDB.settings.sound = true
         GuildDeathLogDB.settings.overlay = true
@@ -149,22 +159,29 @@ function GDL:InitDB()
         GuildDeathLogDB.settings.useBlizzardChannel = true
         GuildDeathLogDB.settings.useAddonChannel = true
         GuildDeathLogDB.settings.debugPrint = false
-        GuildDeathLogDB.addonVersion = currentVersion
-        print("|cffFFD100[Buch]|r v5.3.3 - Gilden-Kalender + Events!!")
+        GuildDeathLogDB.settings.milestoneAnnounce = true  -- NEU: Meilenstein-Chat
+        GuildDeathLogDB.settings.milestonePopup = true     -- NEU: Meilenstein-Popup
     end
     
-    -- Sicherstellen dass alle Keys existieren
+    if savedVersion ~= currentVersion then
+        GuildDeathLogDB.addonVersion = currentVersion
+        print("|cffFFD100[Buch]|r v5.5.6 - Popup mit korrektem Seitenverhaeltnis!")
+    end
+    
+    -- Sicherstellen dass alle Keys existieren (OHNE bestehende zu ueberschreiben!)
     local defaults = {
         announce = true,
         sound = true,
         overlay = true,
         mapMarkers = true,
         guildTracker = true,
-        nameplateTitles = true,   -- Nameplate-Titel default AN
+        nameplateTitles = true,
         useBlizzardChannel = true,
         useAddonChannel = true,
         debugPrint = false,
         overlayScale = 1.0,
+        milestoneAnnounce = true,  -- NEU: Meilenstein-Chat-Nachrichten
+        milestonePopup = true,     -- NEU: Meilenstein-Popup
     }
     
     for key, defaultValue in pairs(defaults) do
@@ -251,7 +268,19 @@ SlashCmdList["GDL"] = function(msg)
         if Debug then Debug:ShowWindow() end
     elseif msg == "scan" then
         local Deathlog = GDL:GetModule("Deathlog")
-        if Deathlog then Deathlog:ScanData() end
+        if Deathlog then 
+            Deathlog:DetectDeathlog()
+            Deathlog:ScanData() 
+            GDL:Print("Deathlog-Scan durchgefuehrt!")
+        end
+    elseif msg == "dlcheck" or msg == "deathlogcheck" or msg == "dlstatus" then
+        -- NEU: Deathlog Debug-Befehl
+        local Deathlog = GDL:GetModule("Deathlog")
+        if Deathlog then 
+            Deathlog:DebugGlobals()
+        else
+            GDL:Print("|cffFF0000Deathlog-Modul nicht geladen!|r")
+        end
     elseif msg == "hof" or msg == "halloffame" or msg == "ruhmeshalle" then
         if UI then UI:ShowHallOfFame() end
     elseif msg == "stats" or msg == "statistics" or msg == "statistiken" then
@@ -261,7 +290,7 @@ SlashCmdList["GDL"] = function(msg)
     elseif msg == "export" then
         if Export then Export:ShowExportWindow() end
     elseif msg == "help" then
-        GDL:Print("=== Befehle / Commands v5.3.3 ===")
+        GDL:Print("=== Befehle / Commands v5.5.6 ===")
         GDL:Print("/gdl - Buch oeffnen")
         GDL:Print("/gdl cal - |cffFFD100Gilden-Kalender|r")
         GDL:Print("/gdl titles - Titel-Fenster")
@@ -270,6 +299,7 @@ SlashCmdList["GDL"] = function(msg)
         GDL:Print("/gdl prof - Gilden-Berufe")
         GDL:Print("/gdl rules - Gildenregeln")
         GDL:Print("/gdl sync - Sync anfordern")
+        GDL:Print("/gdl dlcheck - |cffAAAAAADeathlog-Status pruefen|r")
     elseif msg == "cal" or msg == "calendar" or msg == "kalender" then
         local Calendar = GDL:GetModule("Calendar")
         if Calendar then
@@ -312,8 +342,13 @@ SlashCmdList["GDL"] = function(msg)
             -- Prüfen ob Gildenleiter
             if IsGuildLeader() or GDL:IsGuildOfficer() then
                 GuildDeathLogDB.adminPassword = password
-                GDL:Print("|cff00FF00Admin-Passwort gesetzt!|r")
+                GDL:Print("|cff00FF00Admin-Passwort gesetzt:|r '" .. password .. "'")
                 GDL:Print("|cffAAAAFFNur du und Offiziere können es ändern.|r")
+                -- UI aktualisieren damit X-Buttons erscheinen
+                local UI = GDL:GetModule("UI")
+                if UI and UI.mainFrame and UI.mainFrame:IsShown() then
+                    UI:UpdateChronicle()
+                end
             else
                 GDL:Print("|cffFF0000Fehler:|r Nur der Gildenleiter oder Offiziere können das Passwort setzen!")
             end
@@ -329,7 +364,8 @@ SlashCmdList["GDL"] = function(msg)
         end
     elseif msg == "haspw" then
         if GuildDeathLogDB.adminPassword then
-            GDL:Print("|cff00FF00Passwort ist gesetzt.|r Lösch-Buttons sind aktiv.")
+            GDL:Print("|cff00FF00Passwort ist gesetzt:|r '" .. GuildDeathLogDB.adminPassword .. "'")
+            GDL:Print("Lösch-Buttons sollten sichtbar sein (X rechts neben Einträgen)")
         else
             GDL:Print("|cffFFFF00Kein Passwort gesetzt.|r Verwende /gdl setpw <passwort>")
         end

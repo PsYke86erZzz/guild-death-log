@@ -7,7 +7,7 @@
 ## Notes: Verfolgt Tode von Gildenmitgliedern im Hardcore-Modus
 ## Notes-enUS: Tracks guild member deaths in Hardcore mode
 ## Author: PsYke86
-## Version: 5.3.3
+## Version: 5.5.6
 ## SavedVariables: GuildDeathLogDB
 ## OptionalDeps: Deathlog
 

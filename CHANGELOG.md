@@ -1,5 +1,181 @@
 # Das Buch der Gefallenen - Changelog
 
+## Version 5.4.5 - TEXT-POSITIONEN KORRIGIERT
+**Name nicht mehr über dem Header!**
+
+### Positionen gefixt
+- Name jetzt **unter** dem "Guild Death Log" Text (contentTop = -95)
+- Klassen-Icon besser positioniert (links, vertikal zentriert)
+- Alle Texte besser im dunklen Bereich zentriert
+- Kleinere Schriftgrößen für bessere Passform
+
+### Layout
+- Name: 22pt (war 24pt)
+- Level/Klasse: 13pt 
+- Zone: 11pt
+- Killer: 10pt
+- Letzte Worte: 10pt, unten bei Y=30
+
+---
+
+## Version 5.4.4 - KORREKTES SEITENVERHÄLTNIS
+**Popup jetzt mit Original-Bildproportionen 3:2!**
+
+### Seitenverhältnis gefixt
+- Original-Bild ist **1536 x 1024** Pixel (Verhältnis 3:2)
+- Popup jetzt **460 x 307** Pixel - passt perfekt zum Bild!
+- Keine Verzerrung mehr - Totenköpfe sehen wieder gut aus!
+
+### Sound wieder da
+- Epischer Death Sound (8959) ist zurück
+- Raid Warning Echo nach 0.15 Sekunden
+
+### Layout verbessert
+- Klassen-Icon links (56x56)
+- Name, Level, Zone mittig im dunklen Bereich
+- Letzte Worte unten zentriert
+- Alles passend zum "Todesmeldung" Header im Bild
+
+---
+
+## Version 5.4.3 - GEISTERHAFTER SOUND + LAYOUT FIX
+**Engelshafter Chor statt Alarm + bessere Proportionen!**
+
+### Neuer Sound: Geisterhaft/Engelshaft 👻
+- **Engelshafter Chor** (Sound 11466) - "Ahhhhhhh" wie bei Geistern
+- **Geister-Echo** (Sound 3332) - Leises Nachhall
+- Kein nerviger Alarm-Ton mehr!
+
+### Layout verbessert
+- Popup ist jetzt **breiter** (580x155 statt 500x200) - wie ein Banner
+- **Alle Texte zentriert** im Inhaltsbereich
+- Name, Level, Zone alle schön mittig ausgerichtet
+- Größeres Klassen-Icon (52x52)
+- Bessere Abstände zwischen den Elementen
+
+### Proportionen
+- Das Popup passt jetzt viel besser zur Custom-Textur
+- Kein "gequetschtes" Aussehen mehr
+
+---
+
+## Version 5.4.2 - EPISCHES TODES-POPUP
+**Brandneues Custom-Design mit Skalierungsfunktion!**
+
+### Neues Todes-Popup Design
+**Custom Textur:** Epischer dunkler Rahmen mit Totenköpfen und rotem Akzent
+- Professionelles "Todesmeldung / Guild Death Log" Design
+- Passend zum Hardcore-Thema
+
+### Skalierungsfunktion
+**SHIFT + Linke Maustaste ziehen** = Popup größer/kleiner machen
+- Skalierung von 50% bis 250%
+- Live-Anzeige der aktuellen Größe während des Skalierens
+- Einstellung wird automatisch gespeichert
+
+### Bedienung
+- **Linke Maustaste ziehen** = Popup verschieben
+- **SHIFT + Linke Maustaste ziehen** = Popup skalieren
+- **Rechte Maustaste** = Popup sofort schließen
+
+### Weitere Verbesserungen
+- Sanfteres Fade-In/Fade-Out (0.3s / 1.5s)
+- Popup bleibt 10 Sekunden sichtbar (statt 8)
+- Name wird in Klassenfarbe angezeigt
+- Größerer Platz für letzte Worte (80 Zeichen)
+
+---
+
+## Version 5.4.1 - UI LAYOUT FIX + DEATHLOG ERKENNUNG
+**Leitung-Button + Deathlog-Erkennung verbessert!**
+
+### Fix: "Leitung" Button außerhalb des Fensters
+**Problem:** Der Gildenleiter-Button (Leitung) hing außerhalb des Fensterrahmens
+**Ursache:** Button-Position war bei Y = -2 (negativ = unter dem Fensterrand)
+**Lösung:** 
+- Fenster von 650px auf 700px Höhe vergrößert
+- Alle Button-Positionen angepasst für 4 Reihen
+- Footer und Scroll-Container neu positioniert
+**Ergebnis:** Alle Buttons sind jetzt sauber im Fenster
+
+### Fix: Deathlog-Addon wird nicht erkannt
+**Problem:** Deathlog Status zeigte "Nein" obwohl Deathlog installiert ist
+**Ursache:** Nur eine spezifische Variable wurde geprüft (`deathlog_data`)
+**Lösung:** 
+- Prüft jetzt 10+ verschiedene mögliche Variablennamen
+- Prüft auch Addon-Tabellen (`Deathlog`, `DeathLog`, etc.)
+- Prüft ob Addon geladen ist über `IsAddOnLoaded`
+- Mehrere Erkennungsversuche (nach 2s, 5s, 10s)
+- Verschiedene Datenstrukturen werden unterstützt
+**Neuer Debug-Befehl:** `/gdl dlcheck` zeigt Deathlog-Status und alle globalen "death" Variablen
+
+---
+
+## Version 5.4.0 - PERFORMANCE & BUG FIXES
+**Community-Feedback Update - 6 wichtige Bugs behoben!**
+
+---
+
+### Fix 1: FPS-Einbrüche beim Scrollen (Klassen/Berufe)
+**Problem:** Bei 250+ Mitgliedern brachen die FPS stark ein, teilweise Freezes
+**Ursache:** Bei jedem Scroll/Update wurden 250+ neue Frames erstellt und zerstört
+**Lösung:** Frame-Pooling implementiert - Frames werden wiederverwendet statt neu erstellt
+**Ergebnis:** Flüssiges Scrollen auch bei großen Gilden
+
+### Fix 2: Einstellungen setzten sich zurück
+**Problem:** Checkboxen in den Einstellungen wurden bei jedem Login zurückgesetzt
+**Ursache:** Bei JEDER Versionsänderung wurden alle Settings überschrieben
+**Lösung:** Settings werden nur noch bei komplett neuer Installation auf Defaults gesetzt
+**Ergebnis:** Einstellungen bleiben dauerhaft gespeichert
+
+### Fix 3: Neues Setting für Meilenstein-Nachrichten
+**Problem:** Chat wurde bei großen Gilden mit Achievement-Nachrichten geflutet
+**Lösung:** Zwei neue Einstellungen hinzugefügt:
+- "Meilenstein-Nachrichten" - Chat-Ankündigungen an/aus
+- "Meilenstein-Popup" - Popup-Fenster an/aus
+**Ergebnis:** Jeder kann selbst entscheiden was angezeigt wird
+
+### Fix 4: Bessere Lesbarkeit der Schrift
+**Problem:** Graue Schrift war auf hellem Hintergrund schwer zu lesen
+**Lösung:** Dunklere Schriftfarben (0.15, 0.1, 0.05 statt 0.3, 0.25, 0.2)
+**Ergebnis:** Deutlich besserer Kontrast auf dem Pergament-Hintergrund
+
+### Fix 5: Verbesserte Todes-Synchronisation
+**Problem:** Todesstatistik war bei verschiedenen Spielern unterschiedlich
+**Lösung:** 
+- Sync-Intervall auf 5 Minuten reduziert (statt 15)
+- Proaktiver Push alle 10 Minuten
+- Zusätzlicher Sync 30 Sekunden nach Login
+- Mehr Tode pro Sync (50 statt 20)
+**Ergebnis:** Alle Gildenmitglieder sehen die gleichen Tode
+
+### Fix 6: Berufe-Werte Synchronisation
+**Problem:** Verschiedene Spieler sahen unterschiedliche Berufe-Werte für dieselbe Person
+**Ursache:** Keine Konfliktlösung bei widersprüchlichen Daten
+**Lösung:** Timestamp-basierte Konfliktlösung - nur neuere Daten werden akzeptiert
+**Ergebnis:** Konsistente Berufe-Anzeige bei allen Spielern
+
+---
+
+### Technische Details
+
+**Performance-Optimierungen:**
+- Frame-Pooling: ~99% weniger Garbage Collection
+- Wiederverwendbare UI-Elemente statt ständiger Neuerschaffung
+- Reduzierte Memory-Allokationen beim Scrollen
+
+**Sync-Verbesserungen:**
+- Ping-Intervall: 3 Minuten (statt 5)
+- Full-Sync: alle 5 Minuten (statt 15)
+- Proaktiver Broadcast: alle 10 Minuten
+- Login-Sync: nach 5s und 30s
+
+**Neue Settings:**
+- `milestoneAnnounce` - Meilenstein-Chat-Nachrichten (default: AN)
+- `milestonePopup` - Meilenstein-Popup-Fenster (default: AN)
+
+---
+
 ## Version 4.9.8 - HEUTE-ZÄHLER FIX
 **Hauptfenster und Debug zeigen jetzt die gleiche Anzahl**
 
